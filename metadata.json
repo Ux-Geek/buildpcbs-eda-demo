@@ -1,0 +1,5 @@
+{
+  "name": "BuildPCBs",
+  "description": "A prompt-to-production PCB design tool that leverages AI to generate layouts, schematics, and manufacturing files through a high-fidelity 3D interface.",
+  "requestFramePermissions": []
+}
