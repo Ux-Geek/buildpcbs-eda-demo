@@ -1,20 +1,21 @@
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import PCBRenderer from './components/PCBRenderer';
-import PromptInterface from './components/PromptInterface';
-import { Component, ChangeCard, ViewMode } from './types';
-import { processPrompt } from './services/geminiService';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Cpu, 
-  History, 
-  Settings, 
+import PCBRenderer from '@/components/PCBRenderer';
+import PromptInterface from '@/components/PromptInterface';
+import { Component, ChangeCard, ViewMode } from '@/types';
+import { processPrompt } from '@/services/geminiService';
+import {
+  ChevronDown,
+  ChevronUp,
+  Cpu,
+  History,
+  Settings,
   Download,
   MoreHorizontal
 } from 'lucide-react';
 
-const App: React.FC = () => {
+export default function Home() {
   const [isLanding, setIsLanding] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [components, setComponents] = useState<Component[]>([]);
@@ -54,11 +55,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="relative h-screen w-full bg-[#0B0D12] text-[#BBBBBB] overflow-hidden font-['DM_Sans']">
-      
+    <div className="relative h-screen w-full overflow-hidden">
+
       {/* Background Canvas (Always active but hidden/dimmed on landing) */}
       <div className={`absolute inset-0 transition-opacity duration-1000 ${isLanding ? 'opacity-20 grayscale' : 'opacity-100'}`}>
-        <PCBRenderer components={components} selectedId={null} onSelect={() => {}} />
+        <PCBRenderer components={components} selectedId={null} onSelect={() => { }} />
       </div>
 
       {/* Landing State: Big Bold Header */}
@@ -84,7 +85,7 @@ const App: React.FC = () => {
       {!isLanding && (
         <div className="absolute top-6 left-6 z-40">
           <div className={`bg-[#101422] border border-[#ffffff1a] rounded-[18px] transition-all duration-300 overflow-hidden ${isHeaderExpanded ? 'w-[280px]' : 'w-auto'}`}>
-            <div 
+            <div
               className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#ffffff0a]"
               onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
             >
@@ -122,9 +123,8 @@ const App: React.FC = () => {
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-4 py-1.5 rounded-[10px] text-[12px] font-bold transition-all ${
-                view === v ? 'bg-[#0033DF] text-white' : 'text-[#BBBBBB] hover:text-[#EAF0FF]'
-              }`}
+              className={`px-4 py-1.5 rounded-[10px] text-[12px] font-bold transition-all ${view === v ? 'bg-[#0033DF] text-white' : 'text-[#BBBBBB] hover:text-[#EAF0FF]'
+                }`}
             >
               {v}
             </button>
@@ -133,14 +133,12 @@ const App: React.FC = () => {
       )}
 
       {/* Floating Prompt Interface */}
-      <PromptInterface 
-        isLanding={isLanding} 
-        onPrompt={handlePrompt} 
+      <PromptInterface
+        isLanding={isLanding}
+        onPrompt={handlePrompt}
         history={history}
         isLoading={isProcessing}
       />
     </div>
   );
 };
-
-export default App;

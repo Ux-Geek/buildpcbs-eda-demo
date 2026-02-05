@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Component, ChangeCard } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_API_KEY || 'placeholder_key' });
 
 const PCB_SCHEMA = {
   type: Type.OBJECT,
@@ -39,7 +39,7 @@ const PCB_SCHEMA = {
 };
 
 export const processPrompt = async (
-  prompt: string, 
+  prompt: string,
   currentComponents: Component[]
 ): Promise<{ change: ChangeCard, updatedComponents: Component[] }> => {
   try {
@@ -61,7 +61,7 @@ export const processPrompt = async (
     });
 
     const data = JSON.parse(response.text || '{}');
-    
+
     const change: ChangeCard = {
       id: Math.random().toString(36).substr(2, 9),
       intent: data.intent,
