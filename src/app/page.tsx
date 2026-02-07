@@ -61,12 +61,13 @@ const Home: React.FC = () => {
             setComponentContext(newContext);
 
             // Add Assistant Message with Preview
+            const isChat = ['GREETING', 'CHAT'].includes(result.change.intent.toUpperCase());
             const aiMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: result.change.description, // Or a more conversational summary
+                content: result.change.description,
                 timestamp: new Date(),
-                previewData: {
+                previewData: isChat ? undefined : {
                     changeId: result.change.id,
                     description: result.change.intent,
                     affectedItems: result.change.affectedItems

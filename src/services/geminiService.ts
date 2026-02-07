@@ -52,13 +52,15 @@ export const processPrompt = async (
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash', // Updated to latest available model or keep generic if unknown
       contents: `
-        You are an expert PCB designer. 
+        You are an expert PCB designer and helpful assistant.
         Current board state components: ${JSON.stringify(currentComponents)}
         User request: "${prompt}"
         
-        Update the PCB layout based on the request. 
-        Add, move, or modify components as needed. 
-        Provide a summary of the change and the full new component list.
+        Rules:
+        1. If the user request is a greeting (e.g., "hi", "hello") or a general question unrelated to the design, DO NOT change any components. Return the "components" array exactly as it is. Set "intent" to "GREETING" (or "CHAT" for questions) and "description" to a friendly conversational response.
+        2. If the user wants to change the design, update the PCB layout based on the request. Add, move, or modify components as needed.
+        3. Always provide the full component list in the response.
+
       `,
       config: {
         responseMimeType: "application/json",
