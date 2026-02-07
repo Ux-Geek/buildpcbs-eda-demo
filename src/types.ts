@@ -29,3 +29,17 @@ export interface AppState {
   view: ViewMode;
   selectedId: string | null;
 }
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  previewData?: {
+    changeId: string;
+    description: string;
+    affectedItems: string[];
+  };
+}
+
+export type AppMode = 'LANDING' | 'CHAT_PREVIEW' | 'SPLIT_VIEW';

@@ -2,17 +2,10 @@
 
 import React, { useState } from 'react';
 import PCBRenderer from '@/components/PCBRenderer';
-import PromptInterface from '@/components/PromptInterface';
-import LoadingState from '@/components/LoadingState';
-import { Component, ChangeCard, ViewMode } from '@/types';
+import ChatInterface from '@/components/ChatInterface';
+import { Component, ViewMode, AppMode, Message } from '@/types';
 import { processPrompt } from '@/services/geminiService';
-import {
-    ChevronDown,
-    ChevronUp,
-    History,
-    Settings,
-    Download
-} from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 const Logo = () => (
     <svg width="100" height="23" viewBox="0 0 100 23" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-90">
@@ -26,111 +19,142 @@ const Logo = () => (
 );
 
 const Home: React.FC = () => {
-    const [isLanding, setIsLanding] = useState(true);
+    const [appMode, setAppMode] = useState<AppMode>('LANDING');
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [components, setComponents] = useState<Component[]>([]);
-    const [history, setHistory] = useState<ChangeCard[]>([]);
     const [view, setView] = useState<ViewMode>('3D');
-    const [isHeaderExpanded, setIsHeaderExpanded] = useState(false);
-    const [loadingText, setLoadingText] = useState('');
+    const [componentContext, setComponentContext] = useState<Record<string, string>>({});
 
-    const loadingStates = [
-        "Compiling PCB architecture...",
-        "Arranging core modules...",
-        "Defining trace topology...",
-        "Simulating signal integrity...",
-        "Generating 3D assets..."
-    ];
+    // Derived states
+    const isSplit = appMode === 'SPLIT_VIEW';
 
     const handlePrompt = async (text: string) => {
         setIsProcessing(true);
-        let stateIdx = 0;
-        const interval = setInterval(() => {
-            setLoadingText(loadingStates[stateIdx % loadingStates.length]);
-            stateIdx++;
-        }, 2000);
+
+        // Add User Message
+        const userMsg: Message = {
+            id: Date.now().toString(),
+            role: 'user',
+            content: text,
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, userMsg]);
+
+        // Transition to Chat Preview if in Landing
+        if (appMode === 'LANDING') {
+            setAppMode('CHAT_PREVIEW');
+        }
 
         try {
             const result = await processPrompt(text, components);
             setComponents(result.updatedComponents);
-            setHistory(prev => [result.change, ...prev]);
-            if (isLanding) setIsLanding(false);
+
+            // Update context map
+            const newContext = { ...componentContext };
+            result.change.affectedItems.forEach(name => {
+                const comp = result.updatedComponents.find(c => c.name === name);
+                if (comp) {
+                    newContext[comp.id] = result.change.intent;
+                }
+            });
+            setComponentContext(newContext);
+
+            // Add Assistant Message with Preview
+            const aiMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: result.change.description, // Or a more conversational summary
+                timestamp: new Date(),
+                previewData: {
+                    changeId: result.change.id,
+                    description: result.change.intent,
+                    affectedItems: result.change.affectedItems
+                }
+            };
+            setMessages(prev => [...prev, aiMsg]);
+
         } catch (err) {
             console.error(err);
+            const errorMsg: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: "I encountered an error processing your request. Please try again.",
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMsg]);
         } finally {
-            clearInterval(interval);
             setIsProcessing(false);
-            setLoadingText('');
         }
+    };
+
+    const handlePreview = (changeId: string) => {
+        setAppMode('SPLIT_VIEW');
+        // Optional: Select the component related to changeId
     };
 
     return (
         <div className="relative h-screen w-full bg-[#0B0D12] text-[#BBBBBB] overflow-hidden font-['DM_Sans']">
 
-            {/* Immersive Background */}
-            <div className={`absolute inset-0 transition-all duration-[1500ms] ${isLanding ? 'opacity-10 scale-125' : 'opacity-100 scale-100'}`}>
-                <PCBRenderer components={components} selectedId={null} onSelect={() => { }} />
+            {/* Immersive Background / Main Canvas */}
+            <div className={`
+                absolute inset-0 transition-all duration-[1500ms] ease-in-out
+                ${appMode === 'LANDING' ? 'opacity-20 scale-125' : ''}
+                ${appMode === 'CHAT_PREVIEW' ? 'opacity-10 scale-110 blur-sm' : ''}
+                ${appMode === 'SPLIT_VIEW' ? 'left-[25%] w-[75%] opacity-100 scale-100' : 'w-full'}
+            `}>
+                <PCBRenderer
+                    components={components}
+                    selectedId={null}
+                    onSelect={() => { }}
+                    contextMap={componentContext}
+                />
             </div>
 
-            {/* Landing UI */}
-            {isLanding && !isProcessing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-10">
-                    <div className="mb-12 animate-in fade-in zoom-in-95 duration-1000">
-                        <Logo />
-                    </div>
-                    <h1 className="text-[40px] font-medium text-[#BBBBBB] tracking-[1px] mb-4 text-center leading-[1.1] max-w-[800px] animate-in slide-in-from-top-4 duration-1000">
-                        What do you want to build?
-                    </h1>
-                    <p className="text-[#555555] text-[18px] font-medium tracking-tight mb-12 animate-in fade-in duration-1000 delay-300">
-                        Design production-ready PCBs with natural language.
-                    </p>
+            {/* Chat Interface Container */}
+            <div className={`
+                z-40 transition-all duration-700 ease-in-out
+                ${appMode === 'SPLIT_VIEW'
+                    ? 'fixed left-0 top-0 h-full w-[25%] bg-[#0B0D12] border-r border-[#ffffff1a] shadow-2xl'
+                    : 'absolute inset-0 pointer-events-none'
+                }
+            `}>
+                <div className="w-full h-full pointer-events-auto">
+                    <ChatInterface
+                        mode={appMode}
+                        messages={messages}
+                        onSendMessage={handlePrompt}
+                        onPreview={handlePreview}
+                        isLoading={isProcessing}
+                    />
+                </div>
+            </div>
+
+            {/* Top Right Controls (View Modes) - Only show in Split View or Chat Preview? */}
+            {!isSplit && appMode !== 'LANDING' && (
+                <div className="absolute top-8 right-8 z-40">
+                    <button
+                        onClick={() => setAppMode('SPLIT_VIEW')}
+                        className="bg-[#101422] border border-[#ffffff1a] p-3 rounded-full hover:bg-[#ffffff0a] text-[#777777] hover:text-white transition-all"
+                    >
+                        <ChevronDown className="rotate-[-90deg]" size={20} />
+                    </button>
                 </div>
             )}
 
-            {/* Loading Experience */}
-            {isProcessing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#0B0D12dd] backdrop-blur-3xl animate-in fade-in duration-500">
-                    <LoadingState text={loadingText || "Initiating..."} />
-                </div>
-            )}
-
-            {/* Minimal Foldable Navigation */}
-            {!isLanding && (
-                <div className="absolute top-8 left-8 z-40">
-                    <div className={`bg-[#101422] border border-[#ffffff1a] rounded-[20px] transition-all duration-300 overflow-hidden shadow-2xl ${isHeaderExpanded ? 'w-[300px]' : 'w-auto'}`}>
-                        <div
-                            className="flex items-center gap-4 p-4 cursor-pointer hover:bg-[#ffffff0a]"
-                            onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
-                        >
-                            <div className="flex-shrink-0 scale-75 origin-left">
-                                <Logo />
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                                <p className="text-[13px] font-bold text-[#777777] truncate tracking-tight uppercase">current_file.edat</p>
-                            </div>
-                            {isHeaderExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </div>
-
-                        {isHeaderExpanded && (
-                            <div className="p-3 border-t border-[#ffffff1a] grid grid-cols-3 gap-2">
-                                {[
-                                    { icon: History, label: 'History' },
-                                    { icon: Settings, label: 'Settings' },
-                                    { icon: Download, label: 'Export' },
-                                ].map((item) => (
-                                    <button key={item.label} className="flex flex-col items-center gap-2 p-3 rounded-[14px] text-[#777777] hover:bg-[#ffffff0a] hover:text-[#EAF0FF] transition-all">
-                                        <item.icon size={18} />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+            {/* Current File Header */}
+            {appMode !== 'LANDING' && (
+                <div className={`absolute top-8 left-8 z-40 transition-all duration-500 ${isSplit ? 'opacity-0' : 'opacity-100'}`}>
+                    {/* Hide header in split view as it might clutter the sidebar or main view */}
+                    <div className="bg-[#101422] border border-[#ffffff1a] rounded-[20px] px-4 py-3 flex items-center gap-3 shadow-xl">
+                        <div className="scale-75"><Logo /></div>
+                        <p className="text-[13px] font-bold text-[#777777] tracking-tight uppercase">current_file.edat</p>
                     </div>
                 </div>
             )}
 
-            {/* Fidelity Control */}
-            {!isLanding && (
+            {/* Fidelity Control - Only in Split View */}
+            {isSplit && (
                 <div className="absolute top-8 right-8 z-40 flex bg-[#101422] border border-[#ffffff1a] rounded-[16px] p-1 shadow-2xl">
                     {(['Schematic', 'Layout', '3D'] as ViewMode[]).map((v) => (
                         <button
@@ -142,26 +166,6 @@ const Home: React.FC = () => {
                             {v}
                         </button>
                     ))}
-                </div>
-            )}
-
-            {/* Immersive Prompt UI */}
-            <PromptInterface
-                isLanding={isLanding}
-                onPrompt={handlePrompt}
-                history={history}
-                isLoading={isProcessing}
-            />
-
-            {/* Footer / Status */}
-            {!isLanding && (
-                <div className="absolute bottom-8 right-8 z-40 flex items-center gap-4 bg-[#101422aa] backdrop-blur-md border border-[#ffffff0a] px-4 py-2 rounded-full">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#3EE28B]" />
-                        <span className="text-[11px] font-bold text-[#555555] uppercase tracking-widest">DRC: CLEAN</span>
-                    </div>
-                    <div className="w-px h-3 bg-[#ffffff1a]" />
-                    <span className="text-[11px] font-bold text-[#555555] uppercase tracking-widest">GRID: 0.1MM</span>
                 </div>
             )}
         </div>
