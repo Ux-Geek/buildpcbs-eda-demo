@@ -19,7 +19,7 @@ const Logo = () => (
 );
 
 const Home: React.FC = () => {
-    const [appMode, setAppMode] = useState<AppMode>('LANDING');
+    const [appMode, setAppMode] = useState<AppMode>('LOGIN');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [components, setComponents] = useState<Component[]>([]);
@@ -94,15 +94,20 @@ const Home: React.FC = () => {
         // Optional: Select the component related to changeId
     };
 
+    const handleLogin = () => {
+        setAppMode('LANDING');
+    }
+
     return (
-        <div className="relative h-screen w-full bg-[#0B0D12] text-[#BBBBBB] overflow-hidden font-['DM_Sans']">
+        <div className="relative h-screen w-full bg-white text-gray-800 overflow-hidden font-['DM_Sans']">
 
             {/* Immersive Background / Main Canvas */}
             <div className={`
-                absolute inset-0 transition-all duration-[1500ms] ease-in-out
-                ${appMode === 'LANDING' ? 'opacity-20 scale-125' : ''}
-                ${appMode === 'CHAT_PREVIEW' ? 'opacity-10 scale-110 blur-sm' : ''}
-                ${appMode === 'SPLIT_VIEW' ? 'left-[25%] w-[75%] opacity-100 scale-100' : 'w-full'}
+                absolute inset-0 transition-all duration-[1000ms] cubic-bezier(0.4, 0, 0.2, 1)
+                ${appMode === 'LOGIN' ? 'opacity-0 scale-105' : ''}
+                ${appMode === 'LANDING' ? 'opacity-20 scale-110' : ''}
+                ${appMode === 'CHAT_PREVIEW' ? 'opacity-10 scale-105 blur-[2px]' : ''}
+                ${appMode === 'SPLIT_VIEW' ? 'left-[30%] w-[70%] opacity-100 scale-100' : 'w-full'}
             `}>
                 <PCBRenderer
                     components={components}
@@ -112,11 +117,29 @@ const Home: React.FC = () => {
                 />
             </div>
 
+            {/* Login Overlay */}
+            {appMode === 'LOGIN' && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white">
+                    <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
+                        <div className="mb-8 scale-150">
+                            <Logo />
+                        </div>
+                        <button
+                            onClick={handleLogin}
+                            className="px-8 py-3 bg-[#0038DF] text-white rounded-full font-bold text-sm hover:bg-[#002db3] transition-all shadow-lg hover:shadow-xl hover:scale-105"
+                        >
+                            Sign In to Build
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Chat Interface Container */}
             <div className={`
-                z-40 transition-all duration-700 ease-in-out
+                z-40 transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1)
+                ${appMode === 'LOGIN' ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}
                 ${appMode === 'SPLIT_VIEW'
-                    ? 'fixed left-0 top-0 h-full w-[25%] bg-[#0B0D12] border-r border-[#ffffff1a] shadow-2xl'
+                    ? 'fixed left-0 top-0 h-full w-[30%] bg-white border-r border-gray-100 shadow-2xl'
                     : 'absolute inset-0 pointer-events-none'
                 }
             `}>
@@ -131,12 +154,12 @@ const Home: React.FC = () => {
                 </div>
             </div>
 
-            {/* Top Right Controls (View Modes) - Only show in Split View or Chat Preview? */}
-            {!isSplit && appMode !== 'LANDING' && (
+            {/* Top Right Controls (View Modes) */}
+            {!isSplit && appMode !== 'LANDING' && appMode !== 'LOGIN' && (
                 <div className="absolute top-8 right-8 z-40">
                     <button
                         onClick={() => setAppMode('SPLIT_VIEW')}
-                        className="bg-[#101422] border border-[#ffffff1a] p-3 rounded-full hover:bg-[#ffffff0a] text-[#777777] hover:text-white transition-all"
+                        className="bg-white border border-gray-200 p-3 rounded-full hover:bg-gray-50 text-gray-500 hover:text-[#0038DF] transition-all shadow-sm"
                     >
                         <ChevronDown className="rotate-[-90deg]" size={20} />
                     </button>
@@ -144,29 +167,40 @@ const Home: React.FC = () => {
             )}
 
             {/* Current File Header */}
-            {appMode !== 'LANDING' && (
-                <div className={`absolute top-8 left-8 z-40 transition-all duration-500 ${isSplit ? 'opacity-0' : 'opacity-100'}`}>
-                    {/* Hide header in split view as it might clutter the sidebar or main view */}
-                    <div className="bg-[#101422] border border-[#ffffff1a] rounded-[20px] px-4 py-3 flex items-center gap-3 shadow-xl">
+            {appMode !== 'LANDING' && appMode !== 'LOGIN' && (
+                <div className={`absolute top-8 left-8 z-40 transition-all duration-500 ${isSplit ? 'opacity-0 translate-x-[-20px]' : 'opacity-100 translate-x-0'}`}>
+                    <div className="bg-white border border-gray-200 rounded-[20px] px-4 py-2.5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
                         <div className="scale-75"><Logo /></div>
-                        <p className="text-[13px] font-bold text-[#777777] tracking-tight uppercase">current_file.edat</p>
+                        <p className="text-[12px] font-bold text-gray-500 tracking-tight uppercase">current_file.edat</p>
                     </div>
                 </div>
             )}
 
             {/* Fidelity Control - Only in Split View */}
             {isSplit && (
-                <div className="absolute top-8 right-8 z-40 flex bg-[#101422] border border-[#ffffff1a] rounded-[16px] p-1 shadow-2xl">
+                <div className="absolute top-8 right-8 z-40 flex bg-white border border-gray-200 rounded-[14px] p-1 shadow-md">
                     {(['Schematic', 'Layout', '3D'] as ViewMode[]).map((v) => (
                         <button
                             key={v}
                             onClick={() => setView(v)}
-                            className={`px-6 py-2 rounded-[12px] text-[12px] font-bold transition-all ${view === v ? 'bg-[#0038DF] text-white shadow-lg' : 'text-[#555555] hover:text-[#BBBBBB]'
+                            className={`px-4 py-1.5 rounded-[10px] text-[11px] font-bold transition-all ${view === v ? 'bg-[#0038DF] text-white shadow-sm' : 'text-gray-400 hover:text-gray-800'
                                 }`}
                         >
                             {v}
                         </button>
                     ))}
+                </div>
+            )}
+
+            {/* Footer / Status */}
+            {!['LANDING', 'LOGIN'].includes(appMode) && (
+                <div className="absolute bottom-8 right-8 z-40 flex items-center gap-4 bg-white/80 backdrop-blur-md border border-gray-100 px-4 py-2 rounded-full shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#3EE28B]" />
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">DRC: CLEAN</span>
+                    </div>
+                    <div className="w-px h-3 bg-gray-200" />
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">GRID: 0.1MM</span>
                 </div>
             )}
         </div>
