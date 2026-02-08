@@ -42,4 +42,4 @@ export interface Message {
   };
 }
 
-export type AppMode = 'LANDING' | 'CHAT_PREVIEW' | 'SPLIT_VIEW';
+export type AppMode = 'LOGIN' | 'LANDING' | 'CHAT_PREVIEW' | 'SPLIT_VIEW';

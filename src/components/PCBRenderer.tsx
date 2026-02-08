@@ -24,7 +24,7 @@ const PCBRenderer: React.FC<Props> = ({ components, selectedId, onSelect, contex
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070A10);
+    scene.background = new THREE.Color(0xFFFFFF); // White background
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -47,20 +47,24 @@ const PCBRenderer: React.FC<Props> = ({ components, selectedId, onSelect, contex
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.autoRotate = false; // Ensure auto-rotate is off by default
+    controls.minDistance = 20;
+    controls.maxDistance = 500;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(100, 200, 100);
     scene.add(directionalLight);
 
     const boardGeom = new THREE.BoxGeometry(160, 1.6, 120);
-    const boardMat = new THREE.MeshStandardMaterial({ color: 0x0A0A0A, roughness: 0.2, metalness: 0.1 });
+    // Darker board color for contrast on white background
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x1A1A1A, roughness: 0.2, metalness: 0.1 });
     const board = new THREE.Mesh(boardGeom, boardMat);
     board.position.y = -0.8;
     scene.add(board);
 
-    const grid = new THREE.GridHelper(400, 40, 0x222222, 0x111111);
+    // Grid color adjustment for white background
+    const grid = new THREE.GridHelper(400, 40, 0xE5E7EB, 0xF3F4F6);
     grid.position.y = -1;
     scene.add(grid);
 
@@ -160,12 +164,17 @@ const PCBRenderer: React.FC<Props> = ({ components, selectedId, onSelect, contex
       // Highlight if has context
       const hasContext = contextMap[comp.id];
 
+      // Updated material colors for white theme
+      // Default: dark grey/black for contrast
+      // Hover: slightly lighter
+      // Selected: Primary Blue
+      // Context: Light Blue highlight
       const material = new THREE.MeshStandardMaterial({
-        color: isSelected ? 0x0038DF : (hasContext ? 0x00A8E8 : (isHovered ? 0x555555 : 0x777777)),
+        color: isSelected ? 0x0038DF : (hasContext ? 0x00A8E8 : (isHovered ? 0x4B5563 : 0x1F2937)),
         emissive: hasContext ? 0x0038DF : 0x000000,
         emissiveIntensity: hasContext ? 0.2 : 0,
-        metalness: 0.7,
-        roughness: 0.3
+        metalness: 0.6,
+        roughness: 0.4
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -188,21 +197,21 @@ const PCBRenderer: React.FC<Props> = ({ components, selectedId, onSelect, contex
           className="absolute pointer-events-none z-50 transform -translate-x-1/2 -translate-y-[80px] animate-in fade-in zoom-in-95 duration-200"
           style={{ left: labelPos.x, top: labelPos.y }}
         >
-          <div className="flex flex-col bg-[#101422ee] backdrop-blur-md border border-[#ffffff1a] rounded-[10px] p-2 shadow-xl min-w-[120px]">
+          <div className="flex flex-col bg-white/90 backdrop-blur-md border border-gray-200 rounded-[10px] p-2 shadow-xl min-w-[120px]">
             {contextDescription && (
-              <div className="mb-1 pb-1 border-b border-[#ffffff1a]">
-                <span className="text-[10px] font-bold text-[#3EE28B] uppercase tracking-wider block">AI Context</span>
-                <p className="text-[11px] text-[#EAF0FF] leading-tight">{contextDescription}</p>
+              <div className="mb-1 pb-1 border-b border-gray-100">
+                <span className="text-[10px] font-bold text-[#0038DF] uppercase tracking-wider block">AI Context</span>
+                <p className="text-[11px] text-gray-600 leading-tight">{contextDescription}</p>
               </div>
             )}
 
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-[#BBBBBB]">{hoveredComponent.name}</span>
-              <span className="text-[9px] text-[#555555] bg-[#ffffff0a] px-1 rounded">{hoveredComponent.type}</span>
+              <span className="text-[11px] font-bold text-gray-800">{hoveredComponent.name}</span>
+              <span className="text-[9px] text-gray-500 bg-gray-100 px-1 rounded">{hoveredComponent.type}</span>
             </div>
           </div>
 
-          <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#ffffff1a] mx-auto mt-[-1px]" />
+          <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-white mx-auto mt-[-1px] filter drop-shadow-sm" />
         </div>
       )}
     </div>
