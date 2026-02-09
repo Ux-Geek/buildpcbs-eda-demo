@@ -4,6 +4,36 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /**
+ * Global auth token getter - set by PrivyProvider wrapper
+ */
+let getAuthToken: (() => Promise<string | null>) | null = null;
+
+export function setAuthTokenGetter(getter: () => Promise<string | null>) {
+  getAuthToken = getter;
+}
+
+/**
+ * Get headers with auth token if available
+ */
+/**
+ * Get headers with auth token if available
+ */
+export async function getHeaders(): Promise<HeadersInit> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (getAuthToken) {
+    const token = await getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  return headers;
+}
+
+/**
  * Handle API response and throw APIError if not ok
  */
 export async function handleResponse<T>(response: Response): Promise<T> {
@@ -34,7 +64,8 @@ export async function get<T>(
     });
   }
 
-  const response = await fetch(url.toString());
+  const headers = await getHeaders();
+  const response = await fetch(url.toString(), { headers });
   return handleResponse(response);
 }
 
@@ -42,9 +73,10 @@ export async function get<T>(
  * Make a POST request
  */
 export async function post<T>(endpoint: string, body?: any): Promise<T> {
+  const headers = await getHeaders();
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   return handleResponse(response);
@@ -54,9 +86,10 @@ export async function post<T>(endpoint: string, body?: any): Promise<T> {
  * Make a PUT request
  */
 export async function put<T>(endpoint: string, body?: any): Promise<T> {
+  const headers = await getHeaders();
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   return handleResponse(response);
@@ -66,8 +99,10 @@ export async function put<T>(endpoint: string, body?: any): Promise<T> {
  * Make a DELETE request
  */
 export async function del<T>(endpoint: string): Promise<T> {
+  const headers = await getHeaders();
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: "DELETE",
+    headers,
   });
   return handleResponse(response);
 }

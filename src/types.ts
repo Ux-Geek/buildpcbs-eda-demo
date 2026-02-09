@@ -1,4 +1,3 @@
-
 export interface Component {
   id: string;
   name: string;
@@ -15,12 +14,12 @@ export interface ChangeCard {
   intent: string;
   description: string;
   affectedItems: string[];
-  status: 'applied' | 'error' | 'pending';
+  status: "applied" | "error" | "pending";
   timestamp: Date;
 }
 
-export type FidelityMode = 'Concept' | 'Draft' | 'Production';
-export type ViewMode = 'Layout' | 'Schematic' | '3D';
+export type FidelityMode = "Concept" | "Draft" | "Production";
+export type ViewMode = "Layout" | "Schematic" | "3D";
 
 export interface AppState {
   components: Component[];
@@ -30,11 +29,24 @@ export interface AppState {
   selectedId: string | null;
 }
 
+export interface AgentTask {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "completed" | "error";
+  details?: string;
+  timing?: number;
+  isExpanded?: boolean;
+}
+
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  // Task-based UI fields
+  openingNote?: string;
+  tasks?: AgentTask[];
+  closingNote?: string;
   previewData?: {
     changeId: string;
     description: string;
@@ -42,4 +54,4 @@ export interface Message {
   };
 }
 
-export type AppMode = 'LANDING' | 'CHAT_PREVIEW' | 'SPLIT_VIEW';
+export type AppMode = "LANDING" | "CHAT_PREVIEW" | "SPLIT_VIEW";

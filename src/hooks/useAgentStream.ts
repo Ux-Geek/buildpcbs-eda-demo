@@ -4,12 +4,16 @@ import {
   type AgentExecuteRequest,
   type SSEEvent,
 } from "@/lib/api";
+import type { AgentTask } from "@/types";
 
 export type AgentEvent = SSEEvent;
 
 export interface UseAgentStreamReturn {
   /** Start agent execution with streaming */
-  execute: (prompt: string, options?: { model?: string }) => Promise<void>;
+  execute: (
+    prompt: string,
+    options?: { model?: string; projectId?: string },
+  ) => Promise<void>;
 
   /** Stop the current stream */
   stop: () => void;
@@ -23,6 +27,15 @@ export interface UseAgentStreamReturn {
   /** Latest agent status (from 'thinking' events) */
   status: string | null;
 
+  /** List of execution tasks */
+  tasks: AgentTask[];
+
+  /** Opening note (plan summary) */
+  openingNote: string | null;
+
+  /** Closing note (final summary) */
+  closingNote: string | null;
+
   /** Latest generated code (from 'code' events) */
   latestCode: string | null;
 
@@ -34,24 +47,21 @@ export interface UseAgentStreamReturn {
 
   /** Clear all events and reset state */
   clear: () => void;
+
+  /** Toggle task expansion */
+  toggleTask: (taskId: string) => void;
 }
 
 /**
  * React hook for streaming AI Agent execution
- *
- * @example
- * ```tsx
- * const { execute, isStreaming, content, latestCode, status } = useAgentStream('project-123');
- *
- * <button onClick={() => execute('Add a LED')}>
- *   {isStreaming ? 'Thinking...' : 'Send'}
- * </button>
- * ```
  */
 export function useAgentStream(projectId: string): UseAgentStreamReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [status, setStatus] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [openingNote, setOpeningNote] = useState<string | null>(null);
+  const [closingNote, setClosingNote] = useState<string | null>(null);
   const [latestCode, setLatestCode] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [error, setError] = useState<Error | null>(null);
@@ -59,7 +69,10 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const execute = useCallback(
-    async (prompt: string, options?: { model?: string }) => {
+    async (
+      prompt: string,
+      options?: { model?: string; projectId?: string },
+    ) => {
       // Reset state
       setIsStreaming(true);
       setEvents([]);
@@ -67,13 +80,16 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
       setLatestCode(null);
       setContent("");
       setError(null);
+      setTasks([]);
+      setOpeningNote(null);
+      setClosingNote(null);
 
       // Create abort controller for cancellation
       abortControllerRef.current = new AbortController();
 
       try {
         const request: AgentExecuteRequest = {
-          projectId,
+          projectId: options?.projectId || projectId,
           prompt,
           model: options?.model,
         };
@@ -96,7 +112,57 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
           // Update specific state based on event type
           switch (event.type) {
             case "thinking":
-              setStatus(event.data || event.message);
+              setStatus(event.data?.message || event.message);
+              break;
+
+            case "task_start":
+              setTasks((prev) => [
+                ...prev,
+                {
+                  id:
+                    event.data?.taskId || event.taskId || `task-${Date.now()}`,
+                  label:
+                    event.data?.taskLabel || event.taskLabel || "Unknown Task",
+                  status: "running",
+                },
+              ]);
+              break;
+
+            case "task_complete":
+              setTasks((prev) =>
+                prev.map((t) =>
+                  t.id === (event.data?.taskId || event.taskId)
+                    ? {
+                        ...t,
+                        status: "completed",
+                        details: event.data?.taskDetails || event.taskDetails,
+                        timing: event.data?.taskTiming || event.taskTiming,
+                      }
+                    : t,
+                ),
+              );
+              break;
+
+            case "task_error":
+              setTasks((prev) =>
+                prev.map((t) =>
+                  t.id === (event.data?.taskId || event.taskId)
+                    ? {
+                        ...t,
+                        status: "error",
+                        details: event.data?.error || "Unknown error",
+                      }
+                    : t,
+                ),
+              );
+              break;
+
+            case "opening_note":
+              setOpeningNote(event.data?.note || event.note);
+              break;
+
+            case "closing_note":
+              setClosingNote(event.data?.note || event.note);
               break;
 
             case "code":
@@ -104,11 +170,18 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
               break;
 
             case "content":
-              setContent((prev) => prev + (event.data || event.content || ""));
+              setContent(
+                (prev) => prev + (event.data?.content || event.content || ""),
+              );
               break;
 
             case "error":
-              setError(new Error(event.message || event.data?.message));
+              // Fix type error: error is not on top level SSEEvent in types, but is in data
+              setError(
+                new Error(
+                  event.message || event.data?.error || "Unknown error",
+                ),
+              );
               break;
 
             case "done":
@@ -135,9 +208,20 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
   const clear = useCallback(() => {
     setEvents([]);
     setStatus(null);
+    setTasks([]);
+    setOpeningNote(null);
+    setClosingNote(null);
     setLatestCode(null);
     setContent("");
     setError(null);
+  }, []);
+
+  const toggleTask = useCallback((taskId: string) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId ? { ...t, isExpanded: !t.isExpanded } : t,
+      ),
+    );
   }, []);
 
   return {
@@ -146,9 +230,13 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
     isStreaming,
     events,
     status,
+    tasks,
+    openingNote,
+    closingNote,
     latestCode,
     content,
     error,
     clear,
+    toggleTask,
   };
 }

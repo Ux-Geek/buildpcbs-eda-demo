@@ -13,8 +13,15 @@ import type {
 export async function createProject(
   name: string,
   description?: string,
+  prompt?: string,
+  hardwareType?: "ecad" | "mcad" | "full",
 ): Promise<CreateProjectResponse> {
-  return post("/api/projects/create", { name, description });
+  return post("/api/projects", {
+    name,
+    description,
+    prompt,
+    hardwareType,
+  });
 }
 
 /**

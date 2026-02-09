@@ -131,6 +131,8 @@ export class APIError extends Error {
 
 // SSE Event Types
 
+// SSE Event Types
+
 export type SSEEventType =
   | "thinking"
   | "tool_start"
@@ -138,7 +140,12 @@ export type SSEEventType =
   | "code"
   | "content"
   | "error"
-  | "done";
+  | "done"
+  | "task_start"
+  | "task_complete"
+  | "task_error"
+  | "opening_note"
+  | "closing_note";
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -149,4 +156,11 @@ export interface SSEEvent {
   toolName?: string;
   args?: any;
   success?: boolean;
+  // Task specific fields
+  taskId?: string;
+  taskLabel?: string;
+  taskDetails?: string;
+  taskTiming?: number;
+  note?: string;
+  projectId?: string;
 }

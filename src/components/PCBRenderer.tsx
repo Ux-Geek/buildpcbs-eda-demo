@@ -1,13 +1,29 @@
+"use client";
+
 import React, { useRef, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Component } from "../types";
+
+const PCBViewer = dynamic<React.ComponentType<{ code: string }>>(
+  () => import("@tscircuit/react-fiber").then((mod) => mod.PCBViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center text-sm text-[#7A7A7A]">
+        Loading PCB preview...
+      </div>
+    ),
+  },
+);
 
 interface Props {
   components: Component[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   contextMap?: Record<string, string>;
+  code?: string | null;
 }
 
 const PCBRenderer: React.FC<Props> = ({
@@ -15,7 +31,16 @@ const PCBRenderer: React.FC<Props> = ({
   selectedId,
   onSelect,
   contextMap = {},
+  code,
 }) => {
+  if (code) {
+    return (
+      <div className="w-full h-full">
+        <PCBViewer code={code} />
+      </div>
+    );
+  }
+
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);

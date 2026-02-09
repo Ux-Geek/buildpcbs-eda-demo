@@ -1,4 +1,4 @@
-import { get, post, API_BASE_URL } from "./client";
+import { get, post, API_BASE_URL, getHeaders } from "./client";
 import type {
   AgentExecuteRequest,
   AIModel,
@@ -43,9 +43,10 @@ export async function getChatHistory(
 export async function* streamAgentExecution(
   request: AgentExecuteRequest,
 ): AsyncGenerator<SSEEvent> {
+  const headers = await getHeaders();
   const response = await fetch(`${API_BASE_URL}/api/agent/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(request),
   });
 
