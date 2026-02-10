@@ -58,8 +58,17 @@ export async function* streamAgentExecution(
     body: JSON.stringify(request),
   });
 
+  console.log(
+    "Stream execution response:",
+    response.status,
+    response.statusText,
+  );
   if (!response.ok) {
-    throw new Error(`Failed to start agent execution: ${response.statusText}`);
+    const text = await response.text();
+    console.error("Stream execution failed:", text);
+    throw new Error(
+      `Failed to start agent execution: ${response.statusText} - ${text}`,
+    );
   }
 
   const reader = response.body?.getReader();
@@ -83,6 +92,7 @@ export async function* streamAgentExecution(
           if (data === "[DONE]") return;
 
           try {
+            console.log("Raw SSE Data:", data);
             const event = JSON.parse(data) as SSEEvent;
             yield event;
           } catch (e) {

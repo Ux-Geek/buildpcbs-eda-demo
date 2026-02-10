@@ -53,6 +53,9 @@ export interface UseAgentStreamReturn {
 
   /** Toggle task expansion */
   toggleTask: (taskId: string) => void;
+
+  /** Project name update */
+  projectName: string | null;
 }
 
 /**
@@ -69,6 +72,7 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
   const [latestCode, setLatestCode] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [error, setError] = useState<Error | null>(null);
+  const [projectName, setProjectName] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -87,7 +91,9 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
       setTasks([]);
       setTools([]);
       setOpeningNote(null);
+      setOpeningNote(null);
       setClosingNote(null);
+      setProjectName(null);
 
       // Create abort controller for cancellation
       abortControllerRef.current = new AbortController();
@@ -106,6 +112,8 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
             break;
           }
 
+          console.log("useAgentStream received event:", event);
+
           const typedEvent: AgentEvent = {
             type: event.type,
             data: event.data || event,
@@ -121,16 +129,31 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
               break;
 
             case "task_start":
-              setTasks((prev) => [
-                ...prev,
-                {
-                  id:
-                    event.data?.taskId || event.taskId || `task-${Date.now()}`,
-                  label:
-                    event.data?.taskLabel || event.taskLabel || "Unknown Task",
-                  status: "running",
-                },
-              ]);
+              setTasks((prev) => {
+                const taskId =
+                  event.data?.taskId || event.taskId || `task-${Date.now()}`;
+                // Prevent duplicates
+                if (prev.some((t) => t.id === taskId)) {
+                  return prev;
+                }
+                const label =
+                  event.data?.taskLabel ||
+                  event.taskLabel ||
+                  event.data?.label ||
+                  event.label ||
+                  event.data?.title ||
+                  event.title ||
+                  "Unknown Task";
+
+                return [
+                  ...prev,
+                  {
+                    id: taskId,
+                    label,
+                    status: "running",
+                  },
+                ];
+              });
               break;
 
             case "task_complete":
@@ -230,6 +253,10 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
             case "done":
               setStatus("Completed");
               break;
+
+            case "project_name":
+              setProjectName(event.data?.name || event.name);
+              break;
           }
         }
       } catch (err) {
@@ -257,7 +284,9 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
     setClosingNote(null);
     setLatestCode(null);
     setContent("");
+    setContent("");
     setError(null);
+    setProjectName(null);
   }, []);
 
   const toggleTask = useCallback((taskId: string) => {
@@ -283,5 +312,6 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
     error,
     clear,
     toggleTask,
+    projectName,
   };
 }

@@ -41,7 +41,7 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
       >
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-[#101422] border border-[#ffffff1a] p-2 rounded-r-lg hover:bg-[#ffffff0a] text-[#777777] hover:text-white transition-all shadow-xl"
+          className="bg-black border border-white/10 p-2 rounded-r-lg hover:bg-white/5 text-white/50 hover:text-white transition-all shadow-xl"
           title="My Projects"
         >
           <ChevronRight size={16} />
@@ -67,16 +67,16 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className={`fixed left-0 top-0 h-full w-[300px] bg-[#0B0D12] border-r border-[#ffffff1a] z-50 flex flex-col shadow-2xl ${className}`}
+              className={`fixed left-0 top-0 h-full w-[300px] bg-black border-r border-white/10 z-50 flex flex-col shadow-2xl ${className}`}
             >
-              <div className="p-4 border-b border-[#ffffff1a] flex items-center justify-between">
-                <h2 className="text-[#EAF0FF] font-medium text-sm flex items-center gap-2">
-                  <Folder size={14} className="text-[#0038DF]" />
+              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                <h2 className="text-white font-medium text-sm flex items-center gap-2">
+                  <Folder size={14} className="text-brand" />
                   My Projects
                 </h2>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="text-[#777777] hover:text-white p-1"
+                  className="text-white/50 hover:text-white p-1"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -88,14 +88,14 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                     setIsOpen(false);
                     router.push("/");
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#ffffff0a] text-[#BBBBBB] hover:text-white transition-colors mb-2 border border-dashed border-[#ffffff1a] hover:border-[#0038DF]"
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 text-white/70 hover:text-white transition-colors mb-2 border border-dashed border-white/10 hover:border-brand"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#0038DF22] flex items-center justify-center text-[#0038DF]">
+                  <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
                     <Plus size={16} />
                   </div>
                   <div className="flex flex-col items-start">
                     <span className="text-xs font-medium">New Project</span>
-                    <span className="text-[10px] text-[#555555]">
+                    <span className="text-[10px] text-white/40">
                       Start from scratch
                     </span>
                   </div>
@@ -113,23 +113,23 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                         w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left group
                         ${
                           p.id === currentProjectId
-                            ? "bg-[#0038DF11] border border-[#0038DF33]"
-                            : "hover:bg-[#ffffff05] border border-transparent hover:border-[#ffffff1a]"
+                            ? "bg-[#0038DF]/20 border border-[#0038DF] shadow-[0_0_15px_rgba(0,56,223,0.3)]"
+                            : "hover:bg-white/5 border border-transparent hover:border-white/10"
                         }
                       `}
                     >
                       <div
-                        className={`w-8 h-8 rounded bg-[#101422] flex items-center justify-center ${p.id === currentProjectId ? "text-[#0038DF]" : "text-[#555555] group-hover:text-[#777777]"}`}
+                        className={`w-8 h-8 rounded bg-black flex items-center justify-center ${p.id === currentProjectId ? "text-brand" : "text-white/40 group-hover:text-white/50"}`}
                       >
                         <History size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div
-                          className={`text-xs font-medium truncate ${p.id === currentProjectId ? "text-[#EAF0FF]" : "text-[#BBBBBB]"}`}
+                          className={`text-xs font-medium truncate ${p.id === currentProjectId ? "text-white" : "text-white/70"}`}
                         >
                           {p.name || "Untitled Project"}
                         </div>
-                        <div className="text-[10px] text-[#555555]">
+                        <div className="text-[10px] text-white/40">
                           {new Date(p.updatedAt).toLocaleDateString()}
                         </div>
                       </div>

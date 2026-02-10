@@ -49,7 +49,7 @@ const PromptInterface: React.FC<Props> = ({
             <button
               key={example}
               onClick={() => setPrompt(example)}
-              className="px-4 py-2 rounded-full bg-[#101422] border border-[#ffffff10] text-[13px] text-[#BBBBBB] hover:border-[#0038DF] hover:text-[#EAF0FF] transition-all"
+              className="px-4 py-2 rounded-full bg-black border border-white/10 text-[13px] text-white/70 hover:border-brand hover:text-white transition-all"
             >
               {example}
             </button>
@@ -59,14 +59,14 @@ const PromptInterface: React.FC<Props> = ({
 
       {/* History Popup */}
       {!isLanding && showHistory && (
-        <div className="w-full mb-4 bg-[#101422cc] backdrop-blur-2xl border border-[#ffffff1a] rounded-[24px] p-5 max-h-[350px] overflow-y-auto animate-in slide-in-from-bottom-6">
+        <div className="w-full mb-4 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-[24px] p-5 max-h-[350px] overflow-y-auto animate-in slide-in-from-bottom-6">
           <div className="flex justify-between items-center mb-4 px-1">
-            <span className="text-[12px] font-bold uppercase tracking-widest text-[#777777]">
+            <span className="text-[12px] font-bold uppercase tracking-widest text-white/50">
               Log
             </span>
             <button
               onClick={() => setShowHistory(false)}
-              className="text-[#777777] hover:text-white"
+              className="text-white/50 hover:text-white"
             >
               <X size={16} />
             </button>
@@ -75,20 +75,20 @@ const PromptInterface: React.FC<Props> = ({
             {history.map((h) => (
               <div
                 key={h.id}
-                className="p-4 bg-[#0B0D12] rounded-[18px] border border-[#ffffff0a] hover:border-[#0038DF33] transition-colors group"
+                className="p-4 bg-black rounded-[18px] border border-white/5 hover:border-brand/20 transition-colors group"
               >
                 <div className="flex justify-between items-start">
-                  <p className="text-[14px] text-[#EAF0FF] font-medium">
+                  <p className="text-[14px] text-white font-medium">
                     {h.intent}
                   </p>
-                  <span className="text-[10px] text-[#444444] group-hover:text-[#0038DF]">
+                  <span className="text-[10px] text-white/30 group-hover:text-brand">
                     {h.timestamp.toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
                 </div>
-                <p className="text-[12px] text-[#777777] mt-1.5 leading-relaxed">
+                <p className="text-[12px] text-white/50 mt-1.5 leading-relaxed">
                   {h.description}
                 </p>
               </div>
@@ -117,7 +117,7 @@ const PromptInterface: React.FC<Props> = ({
               ? "Describe your board architecture..."
               : "Refine layout, add components, or route nets..."
           }
-          className={`w-full bg-[#101422] border border-[#ffffff1a] rounded-[24px] px-8 text-[#EAF0FF] focus:outline-none focus:ring-1 focus:ring-[#0038DF] transition-all
+          className={`w-full bg-black border border-white/10 rounded-[24px] px-8 text-white focus:outline-none focus:ring-1 focus:ring-[#0038DF] transition-all
             ${isLanding ? "py-8 text-[20px]" : "py-6 text-[16px]"}
           `}
         />
@@ -127,7 +127,7 @@ const PromptInterface: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => setShowHistory(!showHistory)}
-              className={`p-3 rounded-full hover:bg-[#ffffff0a] transition-colors ${showHistory ? "text-[#0038DF]" : "text-[#777777]"}`}
+              className={`p-3 rounded-full hover:bg-white/5 transition-colors ${showHistory ? "text-brand" : "text-white/50"}`}
             >
               <HistoryIcon size={22} />
             </button>
@@ -135,7 +135,7 @@ const PromptInterface: React.FC<Props> = ({
           <button
             type="submit"
             disabled={!prompt.trim() || isLoading}
-            className="bg-[#0038DF] text-white p-3.5 rounded-full disabled:bg-[#222222] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#0038DF33]"
+            className="bg-[#0038DF] text-white p-3.5 rounded-full disabled:bg-[#0038DF]/50 disabled:text-white/50 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#0038DF]/20"
           >
             <Send size={24} />
           </button>

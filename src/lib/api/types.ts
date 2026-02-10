@@ -17,6 +17,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   createdAt: string;
+  metadata?: any;
 }
 
 export interface ChatHistoryResponse {
@@ -145,7 +146,8 @@ export type SSEEventType =
   | "task_complete"
   | "task_error"
   | "opening_note"
-  | "closing_note";
+  | "closing_note"
+  | "project_name";
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -165,4 +167,7 @@ export interface SSEEvent {
   projectId?: string;
   toolArgs?: any;
   toolResult?: any;
+  name?: string;
+  label?: string;
+  title?: string;
 }

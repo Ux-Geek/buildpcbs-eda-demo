@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PCBRenderer from "@/components/PCBRenderer";
 import ChatInterface from "@/components/ChatInterface";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
@@ -80,14 +80,14 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
   const [componentContext, setComponentContext] = useState<
     Record<string, string>
   >({});
-  const [selectedModel, setSelectedModel] = useState("gpt-5.2");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [isGenerating, setIsGenerating] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,
   );
 
   const privy = usePrivy();
-  const { authenticated, login, logout, user } = privy;
+  const { authenticated, login, logout, user, ready } = privy;
 
   // Sync projectId prop with state
   useEffect(() => {
@@ -102,13 +102,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     async function loadProject() {
       if (!projectId) return;
 
+      // Don't load project data if user is not authenticated
+      if (!authenticated) {
+        console.log("Waiting for authentication before loading project...");
+        return;
+      }
+
       try {
         const [projectData, historyData] = await Promise.all([
           getProjectState(projectId),
           getChatHistory(projectId, { limit: 50 }),
         ]);
 
-        // Load project history into messages
         if (historyData?.messages) {
           const loadedMessages: Message[] = historyData.messages.map(
             (msg: any) => ({
@@ -116,6 +121,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
               role: msg.role === "user" ? "user" : "assistant",
               content: msg.content,
               timestamp: new Date(msg.createdAt),
+              tasks: msg.metadata?.process?.tasks?.map((t: any) => ({
+                id: t.id,
+                label: t.label,
+                status: t.status,
+                details: t.result
+                  ? JSON.stringify(t.result, null, 2)
+                  : undefined,
+                timing: t.timing,
+              })),
               // TODO: Map other fields if needed
             }),
           );
@@ -130,12 +144,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     }
 
     if (projectId) {
-      // Only load if it's a new session (messages empty)
-      // Or always reload? Better to preserve local state if just navigating around?
-      // For now, load on mount.
       loadProject();
     }
-  }, [projectId]);
+  }, [projectId, authenticated]);
 
   const {
     execute,
@@ -150,7 +161,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     events,
     error,
     tools,
+    projectName,
   } = useAgentStream(projectId || "temp-id");
+
+  // Update document title when project name changes
+  useEffect(() => {
+    if (projectName) {
+      document.title = `${projectName} | BuildPCBs`;
+    }
+  }, [projectName]);
+
+  // Log errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("Agent execution error:", error);
+    }
+  }, [error]);
 
   const isSplit = appMode === "SPLIT_VIEW";
 
@@ -184,8 +210,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
           activeProjectId = newProject.id;
           setProjectId(activeProjectId);
 
-          // Use router.push for persistence
-          router.push(`/p/${activeProjectId}`);
+          // Use window.history to update URL without triggering re-render/navigation
+          // This keeps the current component instance and stream alive
+          window.history.pushState({}, "", `/p/${activeProjectId}`);
         } catch (e) {
           console.error("Failed to create project", e);
           setIsGenerating(false);
@@ -200,27 +227,58 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     } finally {
       setIsGenerating(false);
     }
-
-    if (content || tasks.length > 0) {
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content,
-        timestamp: new Date(),
-        tasks,
-        tools,
-        openingNote: openingNote || undefined,
-        closingNote: closingNote || undefined,
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-    }
   };
+
+  // Handle streaming completion to add final message
+  const prevStreamingRef = useRef(false);
+
+  useEffect(() => {
+    // Check if we just finished streaming (transition from true -> false)
+    if (prevStreamingRef.current && !isStreaming) {
+      if (content || tasks.length > 0) {
+        const aiMsg: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content,
+          timestamp: new Date(),
+          tasks: [...tasks], // Create copy to avoid ref issues
+          tools: [...tools],
+          openingNote: openingNote || undefined,
+          closingNote: closingNote || undefined,
+        };
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+
+          // If the last message was from the USER, then this is a new reply -> ALWAYS ADD IT.
+          if (lastMsg && lastMsg.role === "user") {
+            return [...prev, aiMsg];
+          }
+
+          // Prevent duplicate messages if the last one is identical (Assistant following Assistant)
+          // Check content and if it was created very recently (to avoid false positives with history)
+          if (
+            lastMsg &&
+            lastMsg.role === "assistant" &&
+            lastMsg.content === content &&
+            (new Date().getTime() - new Date(lastMsg.id).getTime() < 5000 ||
+              (lastMsg.timestamp &&
+                new Date().getTime() - new Date(lastMsg.timestamp).getTime() <
+                  5000))
+          ) {
+            return prev;
+          }
+          return [...prev, aiMsg];
+        });
+      }
+    }
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming, content, tasks, tools, openingNote, closingNote]);
 
   const handlePreview = (changeId: string) => {
     setAppMode("SPLIT_VIEW");
   };
 
-  const streamingMessage: Message | undefined = isGenerating
+  const streamingMessage: Message | undefined = isStreaming
     ? {
         id: "streaming",
         role: "assistant",
@@ -234,36 +292,37 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     : undefined;
 
   return (
-    <div className="relative h-screen w-full bg-[#0B0D12] text-[#BBBBBB] overflow-hidden font-['DM_Sans']">
+    <div className="relative h-screen w-full bg-black text-white/70 overflow-hidden font-['DM_Sans']">
       {/* Project Sidebar */}
       {/* Only show if authenticated? Or always? */}
       {authenticated && (
         <ProjectSidebar currentProjectId={projectId || undefined} />
       )}
 
-      <div
-        className={`
+      {appMode !== "LANDING" && (
+        <div
+          className={`
                 absolute inset-0
-                ${appMode === "LANDING" ? "opacity-20 scale-125" : ""}
                 ${appMode === "CHAT_PREVIEW" ? "opacity-10 scale-110 blur-sm" : ""}
                 ${appMode === "SPLIT_VIEW" ? "left-[25%] w-[75%] opacity-100 scale-100" : "w-full"}
             `}
-      >
-        <PCBRenderer
-          components={components}
-          selectedId={null}
-          onSelect={() => {}}
-          contextMap={componentContext}
-          code={latestCode}
-        />
-      </div>
+        >
+          <PCBRenderer
+            components={components}
+            selectedId={null}
+            onSelect={() => {}}
+            contextMap={componentContext}
+            code={latestCode}
+          />
+        </div>
+      )}
 
       <div
         className={`
                 z-40
                 ${
                   appMode === "SPLIT_VIEW"
-                    ? "fixed left-0 top-0 h-full w-[25%] bg-[#0B0D12] border-r border-[#ffffff1a] shadow-2xl"
+                    ? "fixed left-0 top-0 h-full w-[25%] bg-black border-r border-white/10 shadow-2xl"
                     : "absolute inset-0 pointer-events-none"
                 }
             `}
@@ -276,14 +335,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             onSendMessage={handlePrompt}
             onPreview={handlePreview}
             onToggleTask={toggleTask}
-            isLoading={isGenerating}
+            isLoading={isStreaming}
             selectedModel={selectedModel}
             onSelectModel={setSelectedModel}
             debugEvents={events}
             debugError={error}
-            debugApiUrl={API_BASE_URL}
+            debugApiUrl={`${API_BASE_URL}/agent/execute`}
             isAuthenticated={authenticated}
             onLogin={login}
+            error={error}
           />
         </div>
       </div>
@@ -337,6 +397,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
         authenticated={authenticated}
         onLogout={logout}
         user={user}
+        ready={ready}
       />
     </div>
   );

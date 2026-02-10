@@ -44,6 +44,7 @@ export default function RootLayout({
               embeddedWallets: {
                 createOnLogin: "users-without-wallets",
               },
+              loginMethods: ["email", "wallet"],
             } as any
           }
         >

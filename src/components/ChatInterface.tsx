@@ -1,8 +1,15 @@
 import React, { useRef, useEffect } from "react";
-import { Send, Sparkles, Maximize2, ArrowRight } from "lucide-react";
+import {
+  Send,
+  Sparkles,
+  Maximize2,
+  ArrowRight,
+  AlertTriangle,
+} from "lucide-react";
 import { AppMode, Message } from "@/types";
 import { TaskProgress } from "./TaskProgress";
 import { AgentTool } from "@/types";
+import { ChatInput } from "./ChatInput";
 
 const ToolPills: React.FC<{ tools: AgentTool[] }> = ({ tools }) => {
   if (!tools || tools.length === 0) return null;
@@ -15,10 +22,10 @@ const ToolPills: React.FC<{ tools: AgentTool[] }> = ({ tools }) => {
             flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-colors cursor-help group relative
             ${
               t.status === "running"
-                ? "bg-[#0038DF10] border-[#0038DF33] text-[#0038DF]"
+                ? "bg-brand/10 border-brand/20 text-brand"
                 : t.status === "error"
-                  ? "bg-[#ff000010] border-[#ff000033] text-[#ff4444]"
-                  : "bg-[#ffffff05] border-[#ffffff0a] text-[#888888]"
+                  ? "bg-red-500/10 border-red-500/20 text-red-500"
+                  : "bg-white/5 border-white/10 text-white/50"
             }
           `}
         >
@@ -34,8 +41,8 @@ const ToolPills: React.FC<{ tools: AgentTool[] }> = ({ tools }) => {
           <span>{t.name}</span>
 
           {/* Tooltip for args/result */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] bg-[#000] border border-[#ffffff20] rounded p-2 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-            <div className="font-bold mb-1 border-b border-[#ffffff10] pb-1">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] bg-black border border-white/20 rounded p-2 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+            <div className="font-bold mb-1 border-b border-white/10 pb-1">
               Args
             </div>
             <pre className="text-[9px] overflow-hidden whitespace-pre-wrap font-mono text-[#aaa]">
@@ -75,12 +82,15 @@ interface Props {
   debugApiUrl?: string;
   isAuthenticated: boolean;
   onLogin: () => void;
+  error?: Error | null;
 }
 
 const MODELS = [
-  { id: "gpt-5.2", name: "ChatGPT (GPT-5.2)" },
-  { id: "claude-opus-4.6", name: "Claude Opus 4.6" },
-  { id: "gemini-3-pro-preview", name: "Gemini 3 Pro" },
+  { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+  { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+  { id: "gpt-4o", name: "GPT-4o" },
+  { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+  { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
 ];
 
 const ChatInterface: React.FC<Props> = ({
@@ -91,13 +101,14 @@ const ChatInterface: React.FC<Props> = ({
   onPreview,
   onToggleTask,
   isLoading,
-  selectedModel = "gpt-5.2",
+  selectedModel = "gemini-2.5-flash",
   onSelectModel,
   debugEvents,
   debugError,
   debugApiUrl,
   isAuthenticated,
   onLogin,
+  error,
 }) => {
   // ... (existing state)
   const [input, setInput] = React.useState("");
@@ -158,7 +169,7 @@ const ChatInterface: React.FC<Props> = ({
       case "CHAT_PREVIEW":
         return "relative w-[720px] mx-auto mt-[10vh] h-[80vh] flex flex-col";
       case "SPLIT_VIEW":
-        return "relative w-full h-full flex flex-col border-r border-[#ffffff1a] bg-[#0B0D12]";
+        return "relative w-full h-full flex flex-col border-r border-white/10 bg-black";
       default:
         return "";
     }
@@ -169,7 +180,7 @@ const ChatInterface: React.FC<Props> = ({
   const renderMessageContent = (msg: Message) => (
     <>
       {msg.role === "assistant" && (
-        <div className="flex items-center gap-2 mb-2 text-[#0038DF]">
+        <div className="flex items-center gap-2 mb-2 text-brand">
           <Sparkles size={14} />
           <span className="text-[11px] font-bold uppercase tracking-wider">
             Agent
@@ -179,7 +190,7 @@ const ChatInterface: React.FC<Props> = ({
 
       {/* Opening Note */}
       {msg.openingNote && (
-        <div className="mb-3 text-[13px] text-gray-400 italic border-l-2 border-[#0038DF] pl-3 py-1 bg-[#0038DF10] rounded-r">
+        <div className="mb-3 text-[13px] text-white/40 italic border-l-2 border-brand pl-3 py-1 bg-brand/10 rounded-r">
           {msg.openingNote}
         </div>
       )}
@@ -210,17 +221,17 @@ const ChatInterface: React.FC<Props> = ({
 
       {/* Preview Action */}
       {msg.previewData && (
-        <div className="mt-4 pt-4 border-t border-[#ffffff0a]">
-          <div className="flex items-center justify-between bg-[#0B0D12] rounded-[12px] p-3 border border-[#ffffff0a]">
+        <div className="mt-4 pt-4 border-t border-white/5">
+          <div className="flex items-center justify-between bg-black rounded-[12px] p-3 border border-white/5">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#0038DF22] flex items-center justify-center text-[#0038DF]">
+              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
                 <Maximize2 size={14} />
               </div>
               <div className="flex flex-col">
-                <span className="text-[12px] font-medium text-[#EAF0FF]">
+                <span className="text-[12px] font-medium text-white">
                   PCB Generation
                 </span>
-                <span className="text-[10px] text-[#555555]">
+                <span className="text-[10px] text-white/40">
                   Ready to review
                 </span>
               </div>
@@ -228,7 +239,7 @@ const ChatInterface: React.FC<Props> = ({
 
             <button
               onClick={() => onPreview(msg.previewData!.changeId)}
-              className="px-4 py-2 bg-[#0038DF] text-white rounded-[8px] text-[11px] font-bold hover:bg-[#002db3] transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-brand text-white rounded-[8px] text-[11px] font-bold hover:bg-brand/80 transition-colors flex items-center gap-2"
             >
               PREVIEW
               <ArrowRight size={12} />
@@ -257,7 +268,7 @@ const ChatInterface: React.FC<Props> = ({
                 const inputEl = document.querySelector('input[type="text"]');
                 if (inputEl instanceof HTMLElement) inputEl.focus();
               }}
-              className="px-4 py-2 rounded-full bg-[#101422] border border-[#ffffff10] text-[13px] text-[#BBBBBB] hover:border-[#0038DF] hover:text-[#EAF0FF] transition-all"
+              className="px-4 py-2 rounded-full bg-black border border-white/10 text-[13px] text-white/70 hover:border-brand hover:text-white transition-all"
             >
               {ex}
             </button>
@@ -279,8 +290,8 @@ const ChatInterface: React.FC<Props> = ({
               <div
                 className={`max-w-[85%] rounded-[20px] p-4 ${
                   msg.role === "user"
-                    ? "bg-[#1A1F2E] text-[#EAF0FF] border border-[#ffffff0a]"
-                    : "bg-[#101422] text-[#BBBBBB] border border-[#ffffff1a]"
+                    ? "bg-[#0038DF] text-white shadow-[0_4px_20px_rgba(0,56,223,0.3)]"
+                    : "bg-black text-white/80 border border-white/10"
                 }`}
               >
                 {renderMessageContent(msg)}
@@ -291,7 +302,7 @@ const ChatInterface: React.FC<Props> = ({
           {/* Streaming Message */}
           {isLoading && streamingMessage && (
             <div className="mb-6 flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="max-w-[85%] rounded-[20px] p-4 bg-[#101422] text-[#BBBBBB] border border-[#ffffff1a] border-l-2 border-l-[#0038DF]">
+              <div className="max-w-[85%] rounded-[20px] p-4 bg-black text-white/70 border border-white/10 border-l-2 border-l-[#0038DF]">
                 {renderMessageContent(streamingMessage)}
               </div>
             </div>
@@ -300,10 +311,31 @@ const ChatInterface: React.FC<Props> = ({
           {/* Loading Indicator (only if no streaming message yet) */}
           {isLoading && !streamingMessage && (
             <div className="flex justify-start mb-6 px-4">
-              <div className="bg-[#101422] rounded-[20px] p-4 border border-[#ffffff1a] flex items-center gap-3">
+              <div className="bg-black rounded-[20px] p-4 border border-white/10 flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-150" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-300" />
+              </div>
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {error && (
+            <div className="mx-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-[12px] p-4 flex items-start gap-3">
+                <AlertTriangle
+                  className="text-red-400 shrink-0 mt-0.5"
+                  size={16}
+                />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] font-medium text-red-200">
+                    Something went wrong
+                  </span>
+                  <span className="text-[12px] text-red-300/80">
+                    {error.message ||
+                      "An unknown error occurred while processing your request."}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -313,99 +345,48 @@ const ChatInterface: React.FC<Props> = ({
       )}
 
       {/* Input Area */}
-      <form
-        onSubmit={handleSubmit}
-        className={`w-full relative group
-          ${
-            mode === "LANDING"
-              ? "shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
-              : mode === "SPLIT_VIEW"
-                ? "px-4 pb-4"
-                : "shadow-[0_10px_30px_-10px_rgba(0,0,0,0.4)]"
-          }
-        `}
+      <div
+        className={`w-full flex justify-center z-50
+        ${
+          mode === "LANDING"
+            ? "relative w-[720px] px-0"
+            : mode === "SPLIT_VIEW"
+              ? "px-4 pb-0 bg-black" // Removed heavy padding/shadow for cleaner look
+              : "fixed bottom-8 left-1/2 -translate-x-1/2 w-[720px] px-0"
+        }`}
       >
-        {/* Model Selector */}
-        {onSelectModel && (
-          <div
-            ref={selectorRef}
-            className={`absolute top-1/2 -translate-y-1/2 left-4 z-20 ${mode === "SPLIT_VIEW" ? "left-6" : "left-6"}`}
-          >
-            <button
-              type="button"
-              onClick={() => setShowModelSelector(!showModelSelector)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1A1F2E] border border-[#ffffff1a] hover:border-[#0038DF] transition-colors text-[11px] font-medium text-[#BBBBBB] hover:text-[#EAF0FF] whitespace-nowrap"
-            >
-              <Sparkles size={12} className="text-[#0038DF]" />
-              <span className="max-w-[150px] truncate">
-                {MODELS.find((m) => m.id === selectedModel)?.name || "Model"}
-              </span>
-            </button>
-
-            {showModelSelector && (
-              <div className="absolute bottom-full left-0 mb-2 w-max min-w-[12rem] bg-[#1A1F2E] border border-[#ffffff1a] rounded-[12px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-1 flex flex-col gap-0.5">
-                  {MODELS.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectModel(m.id);
-                        setShowModelSelector(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-[12px] rounded-[8px] transition-colors whitespace-nowrap ${
-                        selectedModel === m.id
-                          ? "bg-[#0038DF22] text-[#0038DF] font-medium"
-                          : "text-[#BBBBBB] hover:bg-[#ffffff0a] hover:text-[#EAF0FF]"
-                      }`}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <input
-          type="text"
+        <ChatInput
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={isLoading}
-          placeholder={
+          onChange={setInput}
+          onSubmit={() => {
+            console.log("ChatInput onSubmit triggered", {
+              input,
+              isLoading,
+              isAuthenticated,
+            });
+            if (!input.trim() || isLoading) return;
+            if (!isAuthenticated) {
+              console.log("User not authenticated, calling onLogin");
+              onLogin();
+              return;
+            }
+            console.log("Sending message", input);
+            onSendMessage(input);
+            setInput("");
+          }}
+          isLoading={isLoading}
+          mode={
             mode === "LANDING"
-              ? "Describe your board architecture..."
-              : "Ask a follow-up..."
+              ? "LANDING"
+              : mode === "SPLIT_VIEW"
+                ? "SPLIT"
+                : "CHAT"
           }
-          className={`w-full bg-[#101422] border border-[#ffffff1a] rounded-[24px] pr-12 text-[#EAF0FF] focus:outline-none focus:ring-1 focus:ring-[#0038DF] transition-all
-            ${mode === "LANDING" ? "py-6 text-[18px]" : "py-4 text-[14px]"}
-            pl-[200px]
-          `}
+          selectedModel={selectedModel}
+          onSelectModel={onSelectModel}
+          isAuthenticated={isAuthenticated}
         />
-
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-2
-            ${mode === "SPLIT_VIEW" ? "right-6" : "right-4"}
-        `}
-        >
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className={`
-              ${mode === "LANDING" ? "p-3" : "p-2"}
-              bg-[#0038DF] text-white rounded-full disabled:bg-[#222222] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#0038DF33]
-              flex items-center gap-2
-            `}
-          >
-            {isAuthenticated ? (
-              <Send size={mode === "LANDING" ? 20 : 16} />
-            ) : (
-              <span className="text-[12px] font-bold px-1">Login</span>
-            )}
-          </button>
-        </div>
-      </form>
+      </div>
 
       {/* Debug Panel (optional) */}
       {debugEvents && (

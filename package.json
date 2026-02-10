@@ -18,6 +18,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@tscircuit/core": "^0.0.1020",
     "@tscircuit/eval": "^0.0.626",
+    "@tscircuit/pcb-viewer": "^1.11.335",
     "@tscircuit/react-fiber": "^1.2.0",
     "@types/three": "^0.182.0",
     "framer-motion": "^12.34.0",
