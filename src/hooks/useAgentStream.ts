@@ -4,7 +4,7 @@ import {
   type AgentExecuteRequest,
   type SSEEvent,
 } from "@/lib/api";
-import type { AgentTask } from "@/types";
+import type { AgentTask, AgentTool } from "@/types";
 
 export type AgentEvent = SSEEvent;
 
@@ -29,6 +29,9 @@ export interface UseAgentStreamReturn {
 
   /** List of execution tasks */
   tasks: AgentTask[];
+
+  /** List of tool executions */
+  tools: AgentTool[];
 
   /** Opening note (plan summary) */
   openingNote: string | null;
@@ -60,6 +63,7 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [tools, setTools] = useState<AgentTool[]>([]);
   const [openingNote, setOpeningNote] = useState<string | null>(null);
   const [closingNote, setClosingNote] = useState<string | null>(null);
   const [latestCode, setLatestCode] = useState<string | null>(null);
@@ -81,6 +85,7 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
       setContent("");
       setError(null);
       setTasks([]);
+      setTools([]);
       setOpeningNote(null);
       setClosingNote(null);
 
@@ -169,6 +174,44 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
               setLatestCode(event.code || event.data?.code);
               break;
 
+            case "tool_start":
+              setTools((prev) => [
+                ...prev,
+                {
+                  id: `tool-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  name:
+                    event.data?.toolName || event.toolName || "Unknown Tool",
+                  args: event.data?.toolArgs || event.toolArgs || {},
+                  status: "running",
+                  timestamp: new Date(),
+                },
+              ]);
+              break;
+
+            case "tool_result":
+              setTools((prev) => {
+                const toolsReversed = [...prev].reverse();
+                const toolIndex = toolsReversed.findIndex(
+                  (t) =>
+                    t.name === (event.data?.toolName || event.toolName) &&
+                    t.status === "running",
+                );
+
+                if (toolIndex === -1) return prev;
+
+                const actualIndex = prev.length - 1 - toolIndex;
+                const newTools = [...prev];
+                newTools[actualIndex] = {
+                  ...newTools[actualIndex],
+                  status: "completed",
+                  result: event.data?.toolResult || event.toolResult,
+                  timing:
+                    Date.now() - newTools[actualIndex].timestamp.getTime(),
+                };
+                return newTools;
+              });
+              break;
+
             case "content":
               setContent(
                 (prev) => prev + (event.data?.content || event.content || ""),
@@ -209,6 +252,7 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
     setEvents([]);
     setStatus(null);
     setTasks([]);
+    setTools([]);
     setOpeningNote(null);
     setClosingNote(null);
     setLatestCode(null);
@@ -231,6 +275,7 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
     events,
     status,
     tasks,
+    tools,
     openingNote,
     closingNote,
     latestCode,

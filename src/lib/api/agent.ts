@@ -10,7 +10,11 @@ import type {
  * Get available AI models
  */
 export async function getAvailableModels(): Promise<AIModel[]> {
-  return get("/api/agent/models");
+  const response = await get<{
+    success: boolean;
+    data: { models: AIModel[]; default: string };
+  }>("/api/chat/models");
+  return response.data.models;
 }
 
 /**
@@ -24,7 +28,11 @@ export async function getChatHistory(
   if (options?.limit) params.limit = options.limit.toString();
   if (options?.beforeId) params.beforeId = options.beforeId;
 
-  return get(`/api/chat/history/${projectId}`, params);
+  const response = await get<{ success: boolean; data: ChatHistoryResponse }>(
+    `/api/chat/history/${projectId}`,
+    params,
+  );
+  return response.data;
 }
 
 /**

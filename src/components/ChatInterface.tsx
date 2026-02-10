@@ -2,6 +2,63 @@ import React, { useRef, useEffect } from "react";
 import { Send, Sparkles, Maximize2, ArrowRight } from "lucide-react";
 import { AppMode, Message } from "@/types";
 import { TaskProgress } from "./TaskProgress";
+import { AgentTool } from "@/types";
+
+const ToolPills: React.FC<{ tools: AgentTool[] }> = ({ tools }) => {
+  if (!tools || tools.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2 mb-3 px-1">
+      {tools.map((t) => (
+        <div
+          key={t.id}
+          className={`
+            flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-colors cursor-help group relative
+            ${
+              t.status === "running"
+                ? "bg-[#0038DF10] border-[#0038DF33] text-[#0038DF]"
+                : t.status === "error"
+                  ? "bg-[#ff000010] border-[#ff000033] text-[#ff4444]"
+                  : "bg-[#ffffff05] border-[#ffffff0a] text-[#888888]"
+            }
+          `}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              t.status === "running"
+                ? "bg-[#0038DF] animate-pulse"
+                : t.status === "error"
+                  ? "bg-[#ff4444]"
+                  : "bg-[#555555]"
+            }`}
+          />
+          <span>{t.name}</span>
+
+          {/* Tooltip for args/result */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[200px] bg-[#000] border border-[#ffffff20] rounded p-2 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+            <div className="font-bold mb-1 border-b border-[#ffffff10] pb-1">
+              Args
+            </div>
+            <pre className="text-[9px] overflow-hidden whitespace-pre-wrap font-mono text-[#aaa]">
+              {JSON.stringify(t.args, null, 2).slice(0, 100)}
+              {JSON.stringify(t.args).length > 100 && "..."}
+            </pre>
+            {t.result && (
+              <>
+                <div className="font-bold mt-1 mb-1 border-b border-[#ffffff10] pb-1">
+                  Result
+                </div>
+                <pre className="text-[9px] overflow-hidden whitespace-pre-wrap font-mono text-[#aaa]">
+                  {JSON.stringify(t.result, null, 2).slice(0, 100)}
+                  {JSON.stringify(t.result).length > 100 && "..."}
+                </pre>
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 interface Props {
   mode: AppMode;
@@ -127,6 +184,9 @@ const ChatInterface: React.FC<Props> = ({
         </div>
       )}
 
+      {/* Tool Usage */}
+      {msg.tools && <ToolPills tools={msg.tools} />}
+
       {/* Task Progress */}
       {msg.tasks && msg.tasks.length > 0 && onToggleTask && (
         <div className="mb-4">
@@ -180,9 +240,7 @@ const ChatInterface: React.FC<Props> = ({
   );
 
   return (
-    <div
-      className={`transition-all duration-700 ease-in-out z-40 ${containerClasses}`}
-    >
+    <div className={`z-40 ${containerClasses}`}>
       {/* Examples for Landing */}
       {showExamples && (
         <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -257,7 +315,7 @@ const ChatInterface: React.FC<Props> = ({
       {/* Input Area */}
       <form
         onSubmit={handleSubmit}
-        className={`w-full relative group transition-all duration-500
+        className={`w-full relative group
           ${
             mode === "LANDING"
               ? "shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)]"
@@ -276,16 +334,16 @@ const ChatInterface: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => setShowModelSelector(!showModelSelector)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1A1F2E] border border-[#ffffff1a] hover:border-[#0038DF] transition-colors text-[11px] font-medium text-[#BBBBBB] hover:text-[#EAF0FF]"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1A1F2E] border border-[#ffffff1a] hover:border-[#0038DF] transition-colors text-[11px] font-medium text-[#BBBBBB] hover:text-[#EAF0FF] whitespace-nowrap"
             >
               <Sparkles size={12} className="text-[#0038DF]" />
-              <span>
+              <span className="max-w-[150px] truncate">
                 {MODELS.find((m) => m.id === selectedModel)?.name || "Model"}
               </span>
             </button>
 
             {showModelSelector && (
-              <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#1A1F2E] border border-[#ffffff1a] rounded-[12px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute bottom-full left-0 mb-2 w-max min-w-[12rem] bg-[#1A1F2E] border border-[#ffffff1a] rounded-[12px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="p-1 flex flex-col gap-0.5">
                   {MODELS.map((m) => (
                     <button
@@ -295,7 +353,7 @@ const ChatInterface: React.FC<Props> = ({
                         onSelectModel(m.id);
                         setShowModelSelector(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-[12px] rounded-[8px] transition-colors ${
+                      className={`w-full text-left px-3 py-2 text-[12px] rounded-[8px] transition-colors whitespace-nowrap ${
                         selectedModel === m.id
                           ? "bg-[#0038DF22] text-[#0038DF] font-medium"
                           : "text-[#BBBBBB] hover:bg-[#ffffff0a] hover:text-[#EAF0FF]"
@@ -322,7 +380,7 @@ const ChatInterface: React.FC<Props> = ({
           }
           className={`w-full bg-[#101422] border border-[#ffffff1a] rounded-[24px] pr-12 text-[#EAF0FF] focus:outline-none focus:ring-1 focus:ring-[#0038DF] transition-all
             ${mode === "LANDING" ? "py-6 text-[18px]" : "py-4 text-[14px]"}
-            pl-[160px]
+            pl-[200px]
           `}
         />
 

@@ -16,12 +16,31 @@ export async function createProject(
   prompt?: string,
   hardwareType?: "ecad" | "mcad" | "full",
 ): Promise<CreateProjectResponse> {
-  return post("/api/projects", {
+  const response = await post<{
+    success: boolean;
+    data: CreateProjectResponse;
+  }>("/api/projects", {
     name,
     description,
     prompt,
     hardwareType,
   });
+  return response.data;
+}
+
+/**
+ * Get all projects for the user
+ */
+export async function getProjects(options?: {
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<any[]> {
+  const response = await get<{ success: boolean; data: any[] }>(
+    "/api/projects",
+    options as any,
+  );
+  return response.data;
 }
 
 /**
@@ -30,7 +49,10 @@ export async function createProject(
 export async function getProjectState(
   projectId: string,
 ): Promise<ProjectState> {
-  return get(`/api/projects/${projectId}/state`);
+  const response = await get<{ success: boolean; data: ProjectState }>(
+    `/api/projects/${projectId}/state`,
+  );
+  return response.data;
 }
 
 /**

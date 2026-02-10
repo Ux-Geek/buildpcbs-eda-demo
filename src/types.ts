@@ -38,6 +38,17 @@ export interface AgentTask {
   isExpanded?: boolean;
 }
 
+export interface AgentTool {
+  id: string;
+  name: string;
+  args: Record<string, any>;
+  result?: any;
+  status: "running" | "completed" | "error";
+  error?: string;
+  timestamp: Date;
+  timing?: number;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -46,6 +57,7 @@ export interface Message {
   // Task-based UI fields
   openingNote?: string;
   tasks?: AgentTask[];
+  tools?: AgentTool[];
   closingNote?: string;
   previewData?: {
     changeId: string;

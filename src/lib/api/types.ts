@@ -163,4 +163,6 @@ export interface SSEEvent {
   taskTiming?: number;
   note?: string;
   projectId?: string;
+  toolArgs?: any;
+  toolResult?: any;
 }
