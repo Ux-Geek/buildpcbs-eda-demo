@@ -7,9 +7,12 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages@1",
+    "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@google/genai": "^1.39.0",
     "@privy-io/react-auth": "^3.13.1",
     "@privy-io/server-auth": "^1.32.5",
@@ -22,11 +25,11 @@
     "@tscircuit/pcb-viewer": "^1.10.0",
     "@tscircuit/react-fiber": "^1.2.0",
     "@tscircuit/schematic-viewer": "^2.0.56",
-    "occt-import-js": "0.0.23",
     "@types/three": "^0.182.0",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.563.0",
     "next": "^16.1.6",
+    "occt-import-js": "0.0.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "three": "^0.182.0",
