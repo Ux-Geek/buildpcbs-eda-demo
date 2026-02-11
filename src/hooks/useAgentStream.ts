@@ -91,7 +91,6 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
       setTasks([]);
       setTools([]);
       setOpeningNote(null);
-      setOpeningNote(null);
       setClosingNote(null);
       setProjectName(null);
 

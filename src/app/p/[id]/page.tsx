@@ -10,7 +10,7 @@ const ProjectPage: React.FC = () => {
 
   if (!id) return null;
 
-  return <Workspace initialProjectId={id} />;
+  return <Workspace key={id} initialProjectId={id} />;
 };
 
 export default ProjectPage;

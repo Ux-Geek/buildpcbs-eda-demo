@@ -76,6 +76,7 @@ export interface ProjectState {
   name: string;
   ecadCode?: string;
   mcadCode?: string;
+  circuitJson?: any;
   bom?: any[];
   metadata?: Record<string, any>;
 }

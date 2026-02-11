@@ -1,35 +1,110 @@
 "use client";
 
-import React from "react";
-import dynamic from "next/dynamic";
+import React, { useEffect, useState } from "react";
 import { Component } from "../types";
 
-const PCBViewer = dynamic<React.ComponentType<{ code: string }>>(
-  () => import("@tscircuit/pcb-viewer").then((mod) => mod.PCBViewer),
-  {
-    ssr: false,
-    loading: () => (
+// Force client-side only rendering for PCBViewer to avoid hydration/SSR mismatches
+// and potentially reduce "duplicate key" issues from rapid re-renders
+const BrowserPCBViewer = ({
+  circuitJson,
+  viewMode,
+}: {
+  circuitJson: any;
+  viewMode: string;
+}) => {
+  const [Viewers, setViewers] = useState<{
+    PCBViewer: any;
+    SchematicViewer: any;
+    CadViewer: any;
+  }>({ PCBViewer: null, SchematicViewer: null, CadViewer: null });
+
+  // Suppress the duplicate key warning from @tscircuit/pcb-viewer immediately
+  // This is a known issue with the library's internal rendering
+  useEffect(() => {
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    const suppressTscircuitErrors = (...args: any[]) => {
+      const msg = args[0];
+      if (typeof msg === "string") {
+        // Suppress duplicate key errors from tscircuit
+        if (
+          msg.includes("Encountered two children with the same key") ||
+          (msg.includes("silkscreen") && msg.includes("key"))
+        ) {
+          return;
+        }
+      }
+      originalError.apply(console, args);
+    };
+
+    console.error = suppressTscircuitErrors;
+    console.warn = suppressTscircuitErrors;
+
+    // Load all viewers in parallel
+    Promise.all([
+      import("@tscircuit/pcb-viewer"),
+      import("@tscircuit/schematic-viewer"),
+      import("@tscircuit/3d-viewer"),
+    ])
+      .then(([pcbMod, schematicMod, cadMod]) => {
+        console.log("Viewers loaded successfully");
+        setViewers({
+          PCBViewer: pcbMod.PCBViewer,
+          SchematicViewer: schematicMod.SchematicViewer,
+          CadViewer: cadMod.CadViewer,
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to load viewers:", err);
+      });
+
+    return () => {
+      console.error = originalError;
+      console.warn = originalWarn;
+    };
+  }, []);
+
+  const { PCBViewer, SchematicViewer, CadViewer } = Viewers;
+
+  if (!PCBViewer || !SchematicViewer || !CadViewer) {
+    return (
       <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-        Loading PCB preview...
+        Loading circuit engines...
       </div>
-    ),
-  },
-);
+    );
+  }
 
-const EMPTY_BOARD_CODE = `
-import { board } from "@tscircuit/core";
+  // Map our ViewMode to PCBViewer props.
+  // We use key locally to force re-mount if the view changes, which is a brute-force way to ensure switching works
+  // if the component doesn't react to prop updates for tabs.
+  // Mapping: Layout -> pcb, Schematic -> schematic, 3D -> 3d (try lowercase)
+  const tabMap: Record<string, string> = {
+    Layout: "pcb",
+    Schematic: "schematic",
+    "3D": "3d",
+  };
+  const activeTab = tabMap[viewMode] || "pcb";
 
-export const EmptyBoard = () => (
-  <board width="100mm" height="80mm" />
-);
-`;
+  return (
+    <div id="pcb-viewer-container" style={{ width: "100%", height: "100%" }}>
+      {/* @ts-ignore */}
+      <PCBViewer
+        key={JSON.stringify(circuitJson)}
+        circuitJson={circuitJson}
+        defaultTab={activeTab}
+      />
+    </div>
+  );
+};
 
 interface Props {
   components: Component[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   contextMap?: Record<string, string>;
-  code?: string | null;
+  circuitJson?: any | null;
+  viewMode?: "Layout" | "Schematic" | "3D";
 }
 
 const PCBRenderer: React.FC<Props> = ({
@@ -37,26 +112,20 @@ const PCBRenderer: React.FC<Props> = ({
   selectedId,
   onSelect,
   contextMap = {},
-  code,
+  circuitJson,
+  viewMode = "3D", // Default
 }) => {
-  // Create a unique key based on code content to force remount on any change
-  // This prevents React reconciliation issues with tscircuit internal state (duplicate keys)
+  // Use a simple key to force remount on circuitJson change
   const viewerKey = React.useMemo(() => {
-    if (!code) return "viewer-empty";
-    let hash = 0;
-    for (let i = 0; i < code.length; i++) {
-      const char = code.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return `viewer-${hash}`;
-  }, [code]);
+    if (!circuitJson) return "empty";
+    return `viewer-${JSON.stringify(circuitJson).length}`;
+  }, [circuitJson]);
 
-  if (!code) {
+  if (!circuitJson) {
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
-        <div className="text-white/20 text-sm font-mono">
-          {/* Waiting for design... */}
+        <div className="text-white/20 text-sm font-mono opacity-50">
+          {/*  Waiting for circuit data... */}
         </div>
       </div>
     );
@@ -64,7 +133,13 @@ const PCBRenderer: React.FC<Props> = ({
 
   return (
     <div className="w-full h-full">
-      <PCBViewer key={viewerKey} code={code} />
+      {/* Only remount when circuit data actually changes, not on view mode changes
+          This prevents the duplicate key error from multiple rapid re-renders */}
+      <BrowserPCBViewer
+        key={viewerKey}
+        circuitJson={circuitJson}
+        viewMode={viewMode}
+      />
     </div>
   );
 };

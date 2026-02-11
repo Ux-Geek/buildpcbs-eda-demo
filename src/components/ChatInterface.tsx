@@ -177,78 +177,81 @@ const ChatInterface: React.FC<Props> = ({
 
   const showExamples = mode === "LANDING" && !isLoading;
 
-  const renderMessageContent = (msg: Message) => (
-    <>
-      {msg.role === "assistant" && (
-        <div className="flex items-center gap-2 mb-2 text-brand">
-          <Sparkles size={14} />
-          <span className="text-[11px] font-bold uppercase tracking-wider">
-            Agent
-          </span>
-        </div>
-      )}
-
-      {/* Opening Note */}
-      {msg.openingNote && (
-        <div className="mb-3 text-[13px] text-white/40 italic border-l-2 border-brand pl-3 py-1 bg-brand/10 rounded-r">
-          {msg.openingNote}
-        </div>
-      )}
-
-      {/* Tool Usage */}
-      {msg.tools && <ToolPills tools={msg.tools} />}
-
-      {/* Task Progress */}
-      {msg.tasks && msg.tasks.length > 0 && onToggleTask && (
-        <div className="mb-4">
-          <TaskProgress tasks={msg.tasks} onToggle={onToggleTask} />
-        </div>
-      )}
-
-      {/* Main Content */}
-      {msg.content && (
-        <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
-          {msg.content}
-        </p>
-      )}
-
-      {/* Closing Note */}
-      {msg.closingNote && (
-        <div className="mt-3 text-[13px] text-gray-400 italic border-l-2 border-green-500 pl-3 py-1 bg-green-500/10 rounded-r">
-          {msg.closingNote}
-        </div>
-      )}
-
-      {/* Preview Action */}
-      {msg.previewData && (
-        <div className="mt-4 pt-4 border-t border-white/5">
-          <div className="flex items-center justify-between bg-black rounded-[12px] p-3 border border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
-                <Maximize2 size={14} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[12px] font-medium text-white">
-                  PCB Generation
-                </span>
-                <span className="text-[10px] text-white/40">
-                  Ready to review
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => onPreview(msg.previewData!.changeId)}
-              className="px-4 py-2 bg-brand text-white rounded-[8px] text-[11px] font-bold hover:bg-brand/80 transition-colors flex items-center gap-2"
-            >
-              PREVIEW
-              <ArrowRight size={12} />
-            </button>
+  const renderMessageContent = (msg: Message) => {
+    // console.log("Rendering message:", { id: msg.id, role: msg.role, hasOpening: !!msg.openingNote, hasContent: !!msg.content, tasks: msg.tasks?.length });
+    return (
+      <>
+        {msg.role === "assistant" && (
+          <div className="flex items-center gap-2 mb-2 text-brand">
+            <Sparkles size={14} />
+            <span className="text-[11px] font-bold uppercase tracking-wider">
+              Agent
+            </span>
           </div>
-        </div>
-      )}
-    </>
-  );
+        )}
+
+        {/* Opening Note */}
+        {msg.openingNote && (
+          <div className="mb-3 text-[13px] text-white/80 italic border-l-2 border-brand pl-3 py-1 bg-brand/10 rounded-r">
+            {msg.openingNote}
+          </div>
+        )}
+
+        {/* Tool Usage */}
+        {msg.tools && <ToolPills tools={msg.tools} />}
+
+        {/* Task Progress */}
+        {msg.tasks && msg.tasks.length > 0 && onToggleTask && (
+          <div className="mb-4">
+            <TaskProgress tasks={msg.tasks} onToggle={onToggleTask} />
+          </div>
+        )}
+
+        {/* Main Content */}
+        {msg.content && (
+          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
+            {msg.content}
+          </p>
+        )}
+
+        {/* Closing Note */}
+        {msg.closingNote && (
+          <div className="mt-3 text-[13px] text-white/80 italic border-l-2 border-green-500 pl-3 py-1 bg-green-500/10 rounded-r">
+            {msg.closingNote}
+          </div>
+        )}
+
+        {/* Preview Action */}
+        {msg.previewData && (
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between bg-black rounded-[12px] p-3 border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
+                  <Maximize2 size={14} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-medium text-white">
+                    PCB Generation
+                  </span>
+                  <span className="text-[10px] text-white/40">
+                    Ready to review
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => onPreview(msg.previewData!.changeId)}
+                className="px-4 py-2 bg-brand text-white rounded-[8px] text-[11px] font-bold hover:bg-brand/80 transition-colors flex items-center gap-2"
+              >
+                PREVIEW
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className={`z-40 ${containerClasses}`}>

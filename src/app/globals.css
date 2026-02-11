@@ -29,3 +29,9 @@ canvas {
   background: #444444;
   border-radius: 10px;
 }
+
+/* Force PCB Viewer container to fill height */
+#pcb-viewer-container > div {
+  height: 100% !important;
+  width: 100% !important;
+}

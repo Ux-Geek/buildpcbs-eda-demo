@@ -85,15 +85,34 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,
   );
+  const [displayedCode, setDisplayedCode] = useState<string | null>(null);
+  const [circuitJson, setCircuitJson] = useState<any | null>(null);
+  const [showCode, setShowCode] = useState(false);
+  const isDev = process.env.NODE_ENV === "development";
+  const [authInitTimeout, setAuthInitTimeout] = useState(false);
 
   const privy = usePrivy();
   const { authenticated, login, logout, user, ready } = privy;
+
+  // Fallback: if Privy never reports ready, show login after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => setAuthInitTimeout(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync projectId prop with state
   useEffect(() => {
     if (initialProjectId) {
       setProjectId(initialProjectId);
       setAppMode("SPLIT_VIEW");
+    } else {
+      setProjectId(null);
+      setAppMode("LANDING");
+      setMessages([]);
+      setDisplayedCode(null);
+      setCircuitJson(null);
+      setComponents([]);
+      setComponentContext({});
     }
   }, [initialProjectId]);
 
@@ -130,12 +149,23 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
                   : undefined,
                 timing: t.timing,
               })),
+              openingNote:
+                msg.metadata?.process?.openingNote || msg.metadata?.openingNote,
+              closingNote:
+                msg.metadata?.process?.closingNote || msg.metadata?.closingNote,
               // TODO: Map other fields if needed
             }),
           );
           setMessages(loadedMessages);
         }
 
+        if (projectData?.ecadCode) {
+          setDisplayedCode(projectData.ecadCode);
+        }
+
+        if (projectData?.circuitJson) {
+          setCircuitJson(projectData.circuitJson);
+        }
         // TODO: Load components/code if available in projectData
         // if (projectData.ecadCode) ...
       } catch (err) {
@@ -178,6 +208,26 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     }
   }, [error]);
 
+  // Sync displayedCode with streaming latestCode
+  useEffect(() => {
+    if (latestCode) {
+      setDisplayedCode(latestCode);
+
+      // Reload circuitJson from backend since it was compiled when code was saved
+      if (projectId) {
+        getProjectState(projectId)
+          .then((projectState) => {
+            if (projectState?.circuitJson) {
+              setCircuitJson(projectState.circuitJson);
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to reload circuitJson:", err);
+          });
+      }
+    }
+  }, [latestCode, projectId]);
+
   const isSplit = appMode === "SPLIT_VIEW";
 
   const handlePrompt = async (text: string) => {
@@ -213,6 +263,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
           // Use window.history to update URL without triggering re-render/navigation
           // This keeps the current component instance and stream alive
           window.history.pushState({}, "", `/p/${activeProjectId}`);
+
+          // Force layout to Split View (Sidebar) so user sees the board
+          setAppMode("SPLIT_VIEW");
         } catch (e) {
           console.error("Failed to create project", e);
           setIsGenerating(false);
@@ -263,7 +316,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             (new Date().getTime() - new Date(lastMsg.id).getTime() < 5000 ||
               (lastMsg.timestamp &&
                 new Date().getTime() - new Date(lastMsg.timestamp).getTime() <
-                  5000))
+                  5000)) &&
+            // Ensure we don't drop messages if tasks or notes are different
+            lastMsg.tasks?.length === tasks.length &&
+            lastMsg.openingNote === openingNote &&
+            lastMsg.closingNote === closingNote
           ) {
             return prev;
           }
@@ -291,6 +348,17 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       }
     : undefined;
 
+  // If Privy isn't ready yet, show a lightweight placeholder to avoid a blank screen
+  if (!ready && !authInitTimeout) {
+    return (
+      <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
+        <div className="text-white/60 text-sm">
+          Initializing authentication...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-screen w-full bg-black text-white/70 overflow-hidden font-['DM_Sans']">
       {/* Project Sidebar */}
@@ -302,18 +370,32 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       {appMode !== "LANDING" && (
         <div
           className={`
-                absolute inset-0
-                ${appMode === "CHAT_PREVIEW" ? "opacity-10 scale-110 blur-sm" : ""}
-                ${appMode === "SPLIT_VIEW" ? "left-[25%] w-[75%] opacity-100 scale-100" : "w-full"}
+                absolute
+                ${appMode === "CHAT_PREVIEW" ? "inset-0 opacity-10 scale-110 blur-sm" : ""}
+                ${appMode === "SPLIT_VIEW" ? "left-[25%] top-0 w-[75%] h-screen opacity-100 scale-100" : "inset-0 w-full"}
             `}
         >
-          <PCBRenderer
-            components={components}
-            selectedId={null}
-            onSelect={() => {}}
-            contextMap={componentContext}
-            code={latestCode}
-          />
+          {showCode ? (
+            <div className="w-full h-full bg-[#1e1e1e] text-[#d4d4d4] p-4 overflow-auto font-mono text-[13px] leading-relaxed">
+              <textarea
+                className="w-full h-full bg-transparent resize-none focus:outline-none font-mono"
+                value={displayedCode || ""}
+                readOnly
+                spellCheck={false}
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full">
+              <PCBRenderer
+                components={components}
+                selectedId={null}
+                onSelect={() => {}}
+                contextMap={componentContext}
+                circuitJson={circuitJson}
+                viewMode={view}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -375,20 +457,36 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       )}
 
       {isSplit && (
-        <div className="absolute top-8 right-8 z-40 flex bg-[#101422] border border-[#ffffff1a] rounded-[16px] p-1 shadow-2xl">
+        <div className="absolute top-8 right-8 z-40 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
           {(["Schematic", "Layout", "3D"] as ViewMode[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-6 py-2 rounded-[12px] text-[12px] font-bold transition-all ${
+              className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
                 view === v
                   ? "bg-[#0038DF] text-white shadow-lg"
-                  : "text-[#555555] hover:text-[#BBBBBB]"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
               }`}
             >
               {v}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Dev-only Code Toggle */}
+      {isDev && appMode === "SPLIT_VIEW" && (
+        <div className="absolute bottom-8 right-8 z-50 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+              showCode
+                ? "bg-[#0038DF] text-white shadow-lg"
+                : "text-white/50 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            {showCode ? "Hide Code" : "Show Code"}
+          </button>
         </div>
       )}
 

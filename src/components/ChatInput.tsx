@@ -145,13 +145,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder={
-              isLanding
-                ? "Describe your hardware design..."
-                : "Ask a follow-up..."
+              !isAuthenticated
+                ? "Sign in to start generating..."
+                : isLanding
+                  ? "Describe your hardware design..."
+                  : "Ask a follow-up..."
             }
-            className="flex-1 bg-transparent text-white placeholder-white/30 text-[15px] resize-none focus:outline-none max-h-[200px] py-1.5 custom-scrollbar"
+            className={`flex-1 bg-transparent text-white placeholder-white/30 text-[15px] resize-none focus:outline-none max-h-[200px] py-1.5 custom-scrollbar ${!isAuthenticated ? "cursor-not-allowed opacity-50" : ""}`}
             rows={1}
-            disabled={isLoading}
+            disabled={isLoading || !isAuthenticated}
             style={{ minHeight: "24px" }}
           />
 
@@ -168,11 +170,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
             <button
               onClick={onSubmit}
-              disabled={!value.trim() || isLoading}
+              disabled={!isAuthenticated || !value.trim() || isLoading}
               className={`
                 p-2 rounded-xl transition-all duration-300 flex items-center justify-center
                 ${
-                  !value.trim() || isLoading
+                  !isAuthenticated || !value.trim() || isLoading
                     ? "bg-[#0038DF]/50 text-white/30 cursor-not-allowed"
                     : "bg-[#0038DF] text-white hover:bg-[#0038DF]/90 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,56,223,0.5)] border border-[#0038DF]/50"
                 }
