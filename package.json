@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages@1",
+    "pages:build": "next build --webpack && npx @cloudflare/next-on-pages@1",
     "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
@@ -29,7 +29,6 @@
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.563.0",
     "next": "^16.1.6",
-    "occt-import-js": "0.0.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "three": "^0.182.0",
