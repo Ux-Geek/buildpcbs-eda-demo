@@ -26,7 +26,7 @@ export interface SyncResponse {
  */
 export async function syncUser(): Promise<SyncResponse> {
   const response = await post<{ success: boolean; data: SyncResponse }>(
-    "/auth/sync",
+    "/api/auth/sync",
   );
   return response.data;
 }
@@ -36,7 +36,7 @@ export async function syncUser(): Promise<SyncResponse> {
  */
 export async function getMe(): Promise<UserProfile> {
   const response = await get<{ success: boolean; data: UserProfile }>(
-    "/auth/me",
+    "/api/auth/me",
   );
   return response.data;
 }
