@@ -90,7 +90,7 @@ const BrowserPCBViewer = ({
     <div id="pcb-viewer-container" style={{ width: "100%", height: "100%" }}>
       {/* @ts-ignore */}
       <PCBViewer
-        key={JSON.stringify(circuitJson)}
+        key={`${JSON.stringify(circuitJson)}-${activeTab}`}
         circuitJson={circuitJson}
         defaultTab={activeTab}
       />

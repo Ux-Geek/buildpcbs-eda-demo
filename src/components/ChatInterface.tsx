@@ -83,6 +83,7 @@ interface Props {
   isAuthenticated: boolean;
   onLogin: () => void;
   error?: Error | null;
+  streamingStatus?: string | null;
 }
 
 const MODELS = [
@@ -109,6 +110,7 @@ const ChatInterface: React.FC<Props> = ({
   isAuthenticated,
   onLogin,
   error,
+  streamingStatus,
 }) => {
   // ... (existing state)
   const [input, setInput] = React.useState("");
@@ -145,6 +147,7 @@ const ChatInterface: React.FC<Props> = ({
     streamingMessage?.content,
     streamingMessage?.tasks?.length,
     streamingMessage?.tasks?.map((t) => t.status).join(","),
+    streamingStatus,
   ]);
   // ... (existing useEffect and handlers)
 
@@ -185,7 +188,7 @@ const ChatInterface: React.FC<Props> = ({
       hasClosing: !!msg.closingNote,
       hasContent: !!msg.content,
       tasks: msg.tasks?.length || 0,
-      tools: msg.tools?.length || 0
+      tools: msg.tools?.length || 0,
     });
     return (
       <>
@@ -338,7 +341,22 @@ const ChatInterface: React.FC<Props> = ({
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-150" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-300" />
+                {streamingStatus && (
+                  <span className="text-[13px] text-white/50 animate-pulse ml-2">
+                    {streamingStatus}
+                  </span>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Persistent Status Indicator (if streaming message exists but still loading) */}
+          {isLoading && streamingMessage && streamingStatus && (
+            <div className="flex justify-start mb-2 px-6 -mt-4 opacity-70">
+              <span className="text-[11px] text-brand/80 font-mono animate-pulse flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-ping" />
+                {streamingStatus}...
+              </span>
             </div>
           )}
 
@@ -412,7 +430,7 @@ const ChatInterface: React.FC<Props> = ({
       </div>
 
       {/* Debug Panel (optional) */}
-      {debugEvents && (
+      {/* {debugEvents && (
         <div className="mt-3 px-4">
           <button
             type="button"
@@ -438,7 +456,7 @@ const ChatInterface: React.FC<Props> = ({
             </div>
           )}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

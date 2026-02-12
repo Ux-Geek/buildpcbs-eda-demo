@@ -53,9 +53,15 @@ importers:
       '@types/three':
         specifier: ^0.182.0
         version: 0.182.0
+      circuit-json-to-gerber:
+        specifier: ^0.0.47
+        version: 0.0.47(circuit-json@0.0.378)(tscircuit@0.0.1287(@tscircuit/schematic-corpus@0.0.114(typescript@5.8.3))(bun-match-svg@0.0.14(typescript@5.8.3))(looks-same@9.0.1)(three@0.182.0)(typescript@5.8.3))(typescript@5.8.3)
       framer-motion:
         specifier: ^12.34.0
         version: 12.34.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@19.2.4)
@@ -2412,6 +2418,11 @@ packages:
     peerDependencies:
       typescript: ^5.0.0
 
+  '@tscircuit/alphabet@0.0.2':
+    resolution: {integrity: sha512-vLdnx3iJqBQhnFb7mf5IREemtQYidJzGBtYVvzxd3u1WOwgtXkrj9VY2hDjaPNozMVC4zjKOG87z0SHLO74uAQ==}
+    peerDependencies:
+      typescript: ^5.0.0
+
   '@tscircuit/alphabet@0.0.20':
     resolution: {integrity: sha512-Z7xNzU5MVRtzq0sRkIX89Cdz7LQi5rrfWGTOdyytfsxnnvTyanbkr0Tan6eUFY3ujvWcvA78Ox5dDOrwpJJGxw==}
     peerDependencies:
@@ -3276,6 +3287,14 @@ packages:
     resolution: {integrity: sha512-DSOiXaXOTvjU+7et8ITXb2LjgKto6cQzLv3hReYdXuUNtLw2GVnpOly1G83VcIBcSQ4hRVHI4VMKRyZB3XVzdg==}
     peerDependencies:
       typescript: ^5.9.3
+
+  circuit-json-to-gerber@0.0.47:
+    resolution: {integrity: sha512-ZZ5y44DnDKqJO9zi84bppVbMMPUSiwsjHJRQty6ySXpPgz2bnnsjEPeH7XQmU+2U80Yc5hIvjqub57GWQUvsYQ==}
+    hasBin: true
+    peerDependencies:
+      circuit-json: '*'
+      tscircuit: '*'
+      typescript: ^5.0.0
 
   circuit-json-to-gerber@0.0.5:
     resolution: {integrity: sha512-FpxgkFKYkbhHPREQPWBpc+IEvOoGjOOG4K1ItjB5JQCRJNRJUtqzM5S6lhB/FU9Ye8QaAgkzJoo8M28wBYemhA==}
@@ -4187,6 +4206,9 @@ packages:
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
+  immediate@3.0.6:
+    resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
+
   import-fresh@3.3.1:
     resolution: {integrity: sha512-TR3KfrTZTYLPB6jUjfx6MF9WcWrHL9su5TObK4ZkYgBdWKPOFoSoQIdEuTuR82pmtxH2spWG9h6etwfr1pLBqQ==}
     engines: {node: '>=6'}
@@ -4400,6 +4422,9 @@ packages:
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
 
+  jszip@3.10.1:
+    resolution: {integrity: sha512-xXDvecyTpGLrqFrvkrUSoxxfJI5AH7U8zxxtVclpsUtMCq4JQ290LY8AW5c7Ggnr/Y/oK+bQMbqK2qmtk3pN4g==}
+
   jwa@2.0.1:
     resolution: {integrity: sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==}
 
@@ -4437,6 +4462,9 @@ packages:
 
   libphonenumber-js@1.12.36:
     resolution: {integrity: sha512-woWhKMAVx1fzzUnMCyOzglgSgf6/AFHLASdOBcchYCyvWSGWt12imw3iu2hdI5d4dGZRsNWAmWiz37sDKUPaRQ==}
+
+  lie@3.3.0:
+    resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
 
   lightningcss-android-arm64@1.30.2:
     resolution: {integrity: sha512-BH9sEdOCahSgmkVhBLeU7Hc9DWeZ1Eb6wNS6Da8igvUwAe0sqROHddIlvU06q3WyXVEOYDZ6ykBZQnjTbmo4+A==}
@@ -4898,6 +4926,9 @@ packages:
 
   package-manager-manager@0.2.0:
     resolution: {integrity: sha512-V02gl0bafXJ2gcY6j+5IHM7UdnYwmF+2OsFZuqVcha6iMSStD4dpIOBOsypnUIwOi4jLcPz6RQuyifmAE3mG8g==}
+
+  pako@1.0.11:
+    resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
 
   pako@2.1.0:
     resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
@@ -5431,6 +5462,9 @@ packages:
   set-function-length@1.2.2:
     resolution: {integrity: sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg==}
     engines: {node: '>= 0.4'}
+
+  setimmediate@1.0.5:
+    resolution: {integrity: sha512-MATJdZp8sLqDl/68LfQmbP8zKPLQNV6BIZoIgrscFDQ+RsvK/BxeDQOgyxKKoh0y/8h3BqVFnCqQ/gd+reiIXA==}
 
   sha.js@2.4.12:
     resolution: {integrity: sha512-8LzC5+bvI45BjpfXU8V5fdU2mfeKiQe1D1gIMn7XUlF3OTUrpdJpPPH4EMAnF0DsHHdSZqCdSss5qCmJKuiO3w==}
@@ -9156,6 +9190,10 @@ snapshots:
     dependencies:
       typescript: 5.8.3
 
+  '@tscircuit/alphabet@0.0.2(typescript@5.8.3)':
+    dependencies:
+      typescript: 5.8.3
+
   '@tscircuit/alphabet@0.0.20(typescript@5.8.3)':
     dependencies:
       typescript: 5.8.3
@@ -11030,6 +11068,15 @@ snapshots:
       '@tscircuit/math-utils': 0.0.9(typescript@5.8.3)
       typescript: 5.8.3
 
+  circuit-json-to-gerber@0.0.47(circuit-json@0.0.378)(tscircuit@0.0.1287(@tscircuit/schematic-corpus@0.0.114(typescript@5.8.3))(bun-match-svg@0.0.14(typescript@5.8.3))(looks-same@9.0.1)(three@0.182.0)(typescript@5.8.3))(typescript@5.8.3):
+    dependencies:
+      '@tscircuit/alphabet': 0.0.2(typescript@5.8.3)
+      circuit-json: 0.0.378
+      fast-json-stable-stringify: 2.1.0
+      transformation-matrix: 3.1.0
+      tscircuit: 0.0.1287(@tscircuit/schematic-corpus@0.0.114(typescript@5.8.3))(bun-match-svg@0.0.14(typescript@5.8.3))(looks-same@9.0.1)(three@0.182.0)(typescript@5.8.3)
+      typescript: 5.8.3
+
   circuit-json-to-gerber@0.0.5(typescript@5.8.3):
     dependencies:
       fast-json-stable-stringify: 2.1.0
@@ -11630,7 +11677,7 @@ snapshots:
 
   extension-port-stream@3.0.0:
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
 
   eyes@0.1.8: {}
@@ -11917,6 +11964,8 @@ snapshots:
 
   ieee754@1.2.1: {}
 
+  immediate@3.0.6: {}
+
   import-fresh@3.3.1:
     dependencies:
       parent-module: 1.0.1
@@ -12106,6 +12155,13 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
+  jszip@3.10.1:
+    dependencies:
+      lie: 3.3.0
+      pako: 1.0.11
+      readable-stream: 2.3.8
+      setimmediate: 1.0.5
+
   jwa@2.0.1:
     dependencies:
       buffer-equal-constant-time: 1.0.1
@@ -12143,6 +12199,10 @@ snapshots:
   kleur@4.1.5: {}
 
   libphonenumber-js@1.12.36: {}
+
+  lie@3.3.0:
+    dependencies:
+      immediate: 3.0.6
 
   lightningcss-android-arm64@1.30.2:
     optional: true
@@ -12642,6 +12702,8 @@ snapshots:
     dependencies:
       js-yaml: 4.1.1
       shellac: 0.8.0
+
+  pako@1.0.11: {}
 
   pako@2.1.0: {}
 
@@ -13222,6 +13284,8 @@ snapshots:
       get-intrinsic: 1.3.0
       gopd: 1.2.0
       has-property-descriptors: 1.0.2
+
+  setimmediate@1.0.5: {}
 
   sha.js@2.4.12:
     dependencies:

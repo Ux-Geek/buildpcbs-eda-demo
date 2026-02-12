@@ -81,6 +81,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: "dark",
         },
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: "off",
+          },
+          solana: {
+            createOnLogin: "off",
+          },
+        },
+        walletConnectCloudProjectId: undefined,
       }}
     >
       <AuthBridge>{children}</AuthBridge>

@@ -13,6 +13,13 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { createProject, getProjectState } from "@/lib/api/projects";
 import { getChatHistory } from "@/lib/api/agent";
+import {
+  convertSoupToGerberCommands,
+  stringifyGerberCommandLayers,
+  convertSoupToExcellonDrillCommands,
+  stringifyExcellonDrill,
+} from "circuit-json-to-gerber";
+import JSZip from "jszip";
 
 const Logo = () => (
   <svg
@@ -335,32 +342,65 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     setAppMode("SPLIT_VIEW");
   };
 
-  const handleExport = () => {
-    if (!displayedCode && !circuitJson) {
-      alert("No design to export yet!");
+  const handleExport = async () => {
+    if (!circuitJson || !Array.isArray(circuitJson)) {
+      alert("No design to export yet! Generate a PCB design first.");
       return;
     }
 
-    // Create export data
-    const exportData = {
-      ecadCode: displayedCode,
-      circuitJson: circuitJson,
-      exportedAt: new Date().toISOString(),
-      projectId: projectId,
-    };
+    try {
+      // Convert circuit JSON to Gerber commands
+      const gerberCommands = convertSoupToGerberCommands(circuitJson);
 
-    // Download as JSON
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pcb-design-${projectId || "untitled"}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Stringify Gerber commands for each layer
+      const gerberFiles = stringifyGerberCommandLayers(gerberCommands);
+
+      // Generate drill file
+      const drillCommands = convertSoupToExcellonDrillCommands({
+        circuitJson,
+        is_plated: true,
+      });
+      const drillFile = stringifyExcellonDrill(drillCommands);
+
+      // Create ZIP file
+      const zip = new JSZip();
+
+      // Add Gerber files with standard naming convention
+      zip.file("project-F_Cu.gbr", gerberFiles.F_Cu);
+      zip.file("project-B_Cu.gbr", gerberFiles.B_Cu);
+      zip.file("project-F_SilkScreen.gbr", gerberFiles.F_SilkScreen);
+      zip.file("project-B_SilkScreen.gbr", gerberFiles.B_SilkScreen);
+      zip.file("project-F_Mask.gbr", gerberFiles.F_Mask);
+      zip.file("project-B_Mask.gbr", gerberFiles.B_Mask);
+      zip.file("project-F_Paste.gbr", gerberFiles.F_Paste);
+      zip.file("project-B_Paste.gbr", gerberFiles.B_Paste);
+      zip.file("project-Edge_Cuts.gbr", gerberFiles.Edge_Cuts);
+      zip.file("project.drl", drillFile);
+
+      // Also include the source code and circuit JSON for reference
+      if (displayedCode) {
+        zip.file("source.tsx", displayedCode);
+      }
+      zip.file("circuit.json", JSON.stringify(circuitJson, null, 2));
+
+      // Generate ZIP blob
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+
+      // Download ZIP file
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pcb-gerbers-${projectId || "untitled"}-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(
+        `Export failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   };
 
   const streamingMessage: Message | undefined = isStreaming
@@ -454,6 +494,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             isAuthenticated={authenticated}
             onLogin={login}
             error={error}
+            streamingStatus={status}
           />
         </div>
       </div>
@@ -516,7 +557,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       )}
 
       {/* Dev-only Code Toggle */}
-      {isDev && appMode === "SPLIT_VIEW" && (
+      {/* {isDev && appMode === "SPLIT_VIEW" && (
         <div className="absolute bottom-8 right-8 z-50 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
           <button
             onClick={() => setShowCode(!showCode)}
@@ -529,7 +570,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             {showCode ? "Hide Code" : "Show Code"}
           </button>
         </div>
-      )}
+      )} */}
 
       <LoginButton
         onLogin={login}
