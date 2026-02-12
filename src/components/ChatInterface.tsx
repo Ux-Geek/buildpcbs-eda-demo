@@ -255,9 +255,21 @@ const ChatInterface: React.FC<Props> = ({
 
   return (
     <div className={`z-40 ${containerClasses}`}>
+      {/* Logo and Title for Landing */}
+      {mode === "LANDING" && (
+        <div className="flex flex-col items-center gap-3 mb-12 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-white/90">BuildPCBS</span>
+            <span className="text-sm font-medium text-white/40 bg-white/5 px-2 py-1 rounded-full border border-white/10">
+              BETA
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Examples for Landing */}
       {showExamples && (
-        <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+        <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
           {[
             "Dual motor driver",
             "High-efficiency buck converter",

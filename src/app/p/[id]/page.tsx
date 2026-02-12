@@ -4,7 +4,7 @@ import React from "react";
 import { Workspace } from "@/components/Workspace";
 import { useParams } from "next/navigation";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 const ProjectPage: React.FC = () => {
   const params = useParams();
