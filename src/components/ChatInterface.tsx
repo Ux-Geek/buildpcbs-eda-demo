@@ -101,7 +101,7 @@ const ChatInterface: React.FC<Props> = ({
   onPreview,
   onToggleTask,
   isLoading,
-  selectedModel = "gemini-2.5-flash",
+  selectedModel = "gemini-2.5-pro",
   onSelectModel,
   debugEvents,
   debugError,
@@ -178,7 +178,15 @@ const ChatInterface: React.FC<Props> = ({
   const showExamples = mode === "LANDING" && !isLoading;
 
   const renderMessageContent = (msg: Message) => {
-    // console.log("Rendering message:", { id: msg.id, role: msg.role, hasOpening: !!msg.openingNote, hasContent: !!msg.content, tasks: msg.tasks?.length });
+    console.log("🎨 Rendering message:", {
+      id: msg.id,
+      role: msg.role,
+      hasOpening: !!msg.openingNote,
+      hasClosing: !!msg.closingNote,
+      hasContent: !!msg.content,
+      tasks: msg.tasks?.length || 0,
+      tools: msg.tools?.length || 0
+    });
     return (
       <>
         {msg.role === "assistant" && (

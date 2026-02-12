@@ -26,7 +26,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
   isLoading,
   mode,
-  selectedModel = "gemini-2.5-flash",
+  selectedModel = "gemini-2.5-pro",
   onSelectModel,
   isAuthenticated,
 }) => {

@@ -6,7 +6,7 @@ import ChatInterface from "@/components/ChatInterface";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { Component, ViewMode, AppMode, Message } from "@/types";
 import { useAgentStream } from "@/hooks/useAgentStream";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api/client";
 import { LoginButton } from "@/components/LoginButton";
 import { usePrivy } from "@privy-io/react-auth";
@@ -80,7 +80,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
   const [componentContext, setComponentContext] = useState<
     Record<string, string>
   >({});
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-pro");
   const [isGenerating, setIsGenerating] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,
@@ -335,6 +335,34 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     setAppMode("SPLIT_VIEW");
   };
 
+  const handleExport = () => {
+    if (!displayedCode && !circuitJson) {
+      alert("No design to export yet!");
+      return;
+    }
+
+    // Create export data
+    const exportData = {
+      ecadCode: displayedCode,
+      circuitJson: circuitJson,
+      exportedAt: new Date().toISOString(),
+      projectId: projectId,
+    };
+
+    // Download as JSON
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pcb-design-${projectId || "untitled"}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const streamingMessage: Message | undefined = isStreaming
     ? {
         id: "streaming",
@@ -457,20 +485,33 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       )}
 
       {isSplit && (
-        <div className="absolute top-8 right-8 z-40 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
-          {(["Schematic", "Layout", "3D"] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
-                view === v
-                  ? "bg-[#0038DF] text-white shadow-lg"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {v}
-            </button>
-          ))}
+        <div className="absolute top-8 right-8 z-40 flex gap-3">
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            disabled={!displayedCode && !circuitJson}
+            className="bg-black border border-white/10 rounded-full px-6 py-2 shadow-2xl flex items-center gap-2 text-white/70 hover:text-white hover:border-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download size={14} />
+            <span className="text-xs font-bold">Export</span>
+          </button>
+
+          {/* View Mode Selector */}
+          <div className="flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
+            {(["Schematic", "Layout", "3D"] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                  view === v
+                    ? "bg-[#0038DF] text-white shadow-lg"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

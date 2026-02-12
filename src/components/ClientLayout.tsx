@@ -77,7 +77,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={appId}
       config={{
-        loginMethods: ["email", "wallet"],
+        loginMethods: ["email"],
         appearance: {
           theme: "dark",
         },
