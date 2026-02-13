@@ -526,7 +526,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       )}
 
       {isSplit && (
-        <div className="absolute top-8 right-8 z-40 flex gap-3">
+        <div className="absolute top-24 right-8 z-40 flex gap-3">
           {/* Export Button */}
           <button
             onClick={handleExport}
@@ -557,7 +557,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
       )}
 
       {/* Dev-only Code Toggle */}
-      {/* {isDev && appMode === "SPLIT_VIEW" && (
+      {isDev && appMode === "SPLIT_VIEW" && (
         <div className="absolute bottom-8 right-8 z-50 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
           <button
             onClick={() => setShowCode(!showCode)}
@@ -570,7 +570,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             {showCode ? "Hide Code" : "Show Code"}
           </button>
         </div>
-      )} */}
+      )}
 
       <LoginButton
         onLogin={login}

@@ -65,6 +65,12 @@ const BrowserPCBViewer = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      console.log("BrowserPCBViewer - circuitJson:", circuitJson);
+    }
+  }, [circuitJson]);
+
   const { PCBViewer, SchematicViewer, CadViewer } = Viewers;
 
   if (!PCBViewer || !SchematicViewer || !CadViewer) {
@@ -88,12 +94,23 @@ const BrowserPCBViewer = ({
 
   return (
     <div id="pcb-viewer-container" style={{ width: "100%", height: "100%" }}>
-      {/* @ts-ignore */}
-      <PCBViewer
-        key={`${JSON.stringify(circuitJson)}-${activeTab}`}
-        circuitJson={circuitJson}
-        defaultTab={activeTab}
-      />
+      {activeTab === "schematic" ? (
+        <SchematicViewer
+          key={`${JSON.stringify(circuitJson)}-schematic`}
+          circuitJson={circuitJson}
+          debug={process.env.NODE_ENV === "development"}
+        />
+      ) : activeTab === "3d" ? (
+        <CadViewer
+          key={`${JSON.stringify(circuitJson)}-3d`}
+          circuitJson={circuitJson}
+        />
+      ) : (
+        <PCBViewer
+          key={`${JSON.stringify(circuitJson)}-pcb`}
+          circuitJson={circuitJson}
+        />
+      )}
     </div>
   );
 };
@@ -143,5 +160,10 @@ const PCBRenderer: React.FC<Props> = ({
     </div>
   );
 };
+
+// Add debug logging for circuitJson
+if (process.env.NODE_ENV === "development") {
+  console.log("PCBRenderer - ID:", "PCBRenderer");
+}
 
 export default PCBRenderer;
