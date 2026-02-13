@@ -39,7 +39,7 @@ if [ ${#COMMIT_MSG} -gt 100 ]; then
 fi
 
 # Build message
-MESSAGE=$(printf "🚀 *BuildPCBs EDA Local Push*\n\n\`%s\`\n\n🌿 \`%s\` • 👤 %s\n📊 %s files • +%s -%s" \
+MESSAGE=$(printf "🚀 *BuildPCBs EDA Update*\n\n\`%s\`\n\n🌿 \`%s\` • 👤 %s\n📊 %s files • +%s -%s" \
   "$COMMIT_MSG" \
   "$BRANCH" \
   "$AUTHOR" \
