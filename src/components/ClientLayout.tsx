@@ -8,7 +8,7 @@ import { MobileRestricted } from "@/components/MobileRestricted";
 
 function AuthBridge({ children }: { children: React.ReactNode }) {
   const privyState = usePrivy();
-  const { getAccessToken, ready, authenticated, user } = privyState;
+  const { getAccessToken, ready, authenticated, user, logout } = privyState;
   const [ready2, setReady2] = useState(false);
 
   useEffect(() => {
@@ -19,6 +19,15 @@ function AuthBridge({ children }: { children: React.ReactNode }) {
       user: user?.email?.address,
     });
     console.log("[AuthBridge] getAccessToken:", typeof getAccessToken);
+
+    // Enforce Email-Only: Logout if connected via wallet (no email)
+    if (ready && authenticated && !user?.email) {
+      console.warn(
+        "[AuthBridge] User connected without email (likely wallet). Forcing logout.",
+      );
+      logout();
+      return;
+    }
 
     // Expose for debugging
     (window as any).__privy = {
@@ -50,7 +59,7 @@ function AuthBridge({ children }: { children: React.ReactNode }) {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [getAccessToken, ready, authenticated, user]);
+  }, [getAccessToken, ready, authenticated, user, logout]);
 
   return <>{children}</>;
 }

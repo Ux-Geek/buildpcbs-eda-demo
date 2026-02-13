@@ -132,12 +132,6 @@ const PCBRenderer: React.FC<Props> = ({
   circuitJson,
   viewMode = "3D", // Default
 }) => {
-  // Use a simple key to force remount on circuitJson change
-  const viewerKey = React.useMemo(() => {
-    if (!circuitJson) return "empty";
-    return `viewer-${JSON.stringify(circuitJson).length}`;
-  }, [circuitJson]);
-
   if (!circuitJson) {
     return (
       <div className="w-full h-full bg-black flex items-center justify-center">
@@ -150,13 +144,7 @@ const PCBRenderer: React.FC<Props> = ({
 
   return (
     <div className="w-full h-full">
-      {/* Only remount when circuit data actually changes, not on view mode changes
-          This prevents the duplicate key error from multiple rapid re-renders */}
-      <BrowserPCBViewer
-        key={viewerKey}
-        circuitJson={circuitJson}
-        viewMode={viewMode}
-      />
+      <BrowserPCBViewer circuitJson={circuitJson} viewMode={viewMode} />
     </div>
   );
 };

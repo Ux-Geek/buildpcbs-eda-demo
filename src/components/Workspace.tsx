@@ -248,7 +248,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     setMessages((prev) => [...prev, userMsg]);
 
     if (appMode === "LANDING") {
-      setAppMode("CHAT_PREVIEW");
+      setAppMode("SPLIT_VIEW");
     }
 
     setIsGenerating(true);
