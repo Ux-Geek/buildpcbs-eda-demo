@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PrivyProvider, usePrivy } from "@privy-io/react-auth";
 import { setAuthTokenGetter } from "@/lib/api/client";
 import { syncUser } from "@/lib/api/auth";
+import { MobileRestricted } from "@/components/MobileRestricted";
 
 function AuthBridge({ children }: { children: React.ReactNode }) {
   const privyState = usePrivy();
@@ -92,6 +93,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         walletConnectCloudProjectId: undefined,
       }}
     >
+      <MobileRestricted />
       <AuthBridge>{children}</AuthBridge>
     </PrivyProvider>
   );
