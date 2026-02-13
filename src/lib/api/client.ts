@@ -1,7 +1,8 @@
 import { APIError } from "./types";
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+).replace(/\/$/, "");
 
 /**
  * Global auth token getter - set by PrivyProvider wrapper
@@ -12,9 +13,6 @@ export function setAuthTokenGetter(getter: () => Promise<string | null>) {
   getAuthToken = getter;
 }
 
-/**
- * Get headers with auth token if available
- */
 /**
  * Get headers with auth token if available
  */
@@ -57,7 +55,7 @@ export async function get<T>(
   endpoint: string,
   params?: Record<string, string>,
 ): Promise<T> {
-  const url = new URL(endpoint, API_BASE_URL);
+  const url = new URL(endpoint, API_BASE_URL); // URL constructor handles base+path well if base has no trailing slash and path has leading
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, value);
@@ -74,7 +72,11 @@ export async function get<T>(
  */
 export async function post<T>(endpoint: string, body?: any): Promise<T> {
   const headers = await getHeaders();
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  // API_BASE_URL is guaranteed to not have trailing slash
+  // endpoint normally has leading slash.
+  // If endpoint DOES NOT have leading slash, we should add it.
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -87,7 +89,8 @@ export async function post<T>(endpoint: string, body?: any): Promise<T> {
  */
 export async function put<T>(endpoint: string, body?: any): Promise<T> {
   const headers = await getHeaders();
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "PUT",
     headers,
     body: body ? JSON.stringify(body) : undefined,
@@ -100,7 +103,8 @@ export async function put<T>(endpoint: string, body?: any): Promise<T> {
  */
 export async function del<T>(endpoint: string): Promise<T> {
   const headers = await getHeaders();
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
     headers,
   });

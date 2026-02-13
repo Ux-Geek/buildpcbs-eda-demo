@@ -163,7 +163,20 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
               // TODO: Map other fields if needed
             }),
           );
-          setMessages(loadedMessages);
+          setMessages((prev) => {
+            // If we are generating (e.g. creating a new project with a prompt),
+            // preserve the last optimistic user message so it doesn't disappear.
+            if (isGenerating && prev.length > 0) {
+              const lastMsg = prev[prev.length - 1];
+              if (
+                lastMsg.role === "user" &&
+                !loadedMessages.some((m) => m.id === lastMsg.id)
+              ) {
+                return [...loadedMessages, lastMsg];
+              }
+            }
+            return loadedMessages;
+          });
         }
 
         if (projectData?.ecadCode) {
