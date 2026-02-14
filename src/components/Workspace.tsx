@@ -168,11 +168,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
             // preserve the last optimistic user message so it doesn't disappear.
             if (isGenerating && prev.length > 0) {
               const lastMsg = prev[prev.length - 1];
-              if (
-                lastMsg.role === "user" &&
-                !loadedMessages.some((m) => m.id === lastMsg.id)
-              ) {
-                return [...loadedMessages, lastMsg];
+              if (lastMsg.role === "user") {
+                // Check if this message is already not in the loaded messages (by ID or Content)
+                const isAlreadyLoaded = loadedMessages.some(
+                  (m) =>
+                    m.id === lastMsg.id ||
+                    (m.role === "user" &&
+                      m.content.trim() === lastMsg.content.trim()),
+                );
+
+                if (!isAlreadyLoaded) {
+                  return [...loadedMessages, lastMsg];
+                }
               }
             }
             return loadedMessages;

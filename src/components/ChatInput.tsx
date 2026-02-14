@@ -83,7 +83,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           ${
             isFocused
               ? "border-brand/50 shadow-[0_0_20px_-5px_rgba(0,56,223,0.3)]"
-              : "border-white/10 hover:border-white/20"
+              : isLanding
+                ? "border-brand/40 shadow-[0_0_30px_-5px_rgba(0,56,223,0.4)] hover:border-brand/60"
+                : "border-white/10 hover:border-white/20"
           }
           ${isLanding ? "rounded-[24px] p-1" : "rounded-t-[20px] rounded-b-none border-b-0 p-2"}
         `}

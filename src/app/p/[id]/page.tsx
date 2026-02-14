@@ -1,8 +1,13 @@
 "use client";
 
 import React from "react";
-import { Workspace } from "@/components/Workspace";
 import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const Workspace = dynamic(
+  () => import("@/components/Workspace").then((mod) => mod.Workspace),
+  { ssr: false },
+);
 
 export const runtime = "edge";
 
