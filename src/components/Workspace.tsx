@@ -7,7 +7,15 @@ import { ProjectSidebar } from "@/components/ProjectSidebar";
 import { BOMDisplay } from "@/components/BOMDisplay";
 import { Component, ViewMode, AppMode, Message } from "@/types";
 import { useAgentStream } from "@/hooks/useAgentStream";
-import { ChevronDown, Download } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  Cpu,
+  Layers,
+  Box,
+  ScrollText,
+} from "lucide-react";
+
 import { API_BASE_URL } from "@/lib/api/client";
 import { LoginButton } from "@/components/LoginButton";
 import { usePrivy } from "@privy-io/react-auth";
@@ -78,6 +86,16 @@ interface WorkspaceProps {
   className?: string;
   debugMode?: boolean; // Bypass authentication for admin/debug access
 }
+
+const viewModeConfig: Record<
+  ViewMode,
+  { icon: React.ReactNode; label: string }
+> = {
+  Schematic: { icon: <Cpu size={18} />, label: "Schematic" },
+  Layout: { icon: <Layers size={18} />, label: "Layout" },
+  "3D": { icon: <Box size={18} />, label: "3D View" },
+  BOM: { icon: <ScrollText size={18} />, label: "Bill of Materials" },
+};
 
 export const Workspace: React.FC<WorkspaceProps> = ({
   initialProjectId,
@@ -394,6 +412,24 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     prevStreamingRef.current = isStreaming;
   }, [isStreaming, content, tasks, tools, openingNote, closingNote]);
 
+  // Real-time BOM update from tool results
+  useEffect(() => {
+    if (tools && tools.length > 0) {
+      const lastTool = tools[tools.length - 1];
+      if (
+        lastTool.status === "completed" &&
+        lastTool.name === "update_ecad_code" &&
+        lastTool.result?.data?.bom
+      ) {
+        console.log(
+          "Auto-updating BOM from tool result",
+          lastTool.result.data.bom,
+        );
+        setBom(lastTool.result.data.bom);
+      }
+    }
+  }, [tools]);
+
   const handlePreview = (changeId: string) => {
     setAppMode("SPLIT_VIEW");
   };
@@ -605,30 +641,46 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       )}
 
       {isSplit && (
-        <div className="absolute top-24 right-8 z-40 flex gap-3">
+        <div className="absolute top-24 right-8 z-40 flex flex-col gap-3">
           {/* Export Button */}
           <button
             onClick={handleExport}
             disabled={true}
-            className="bg-black border border-white/10 rounded-full px-6 py-2 shadow-2xl flex items-center gap-2 text-white/70 hover:text-white hover:border-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`
+              group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
+              bg-black border border-white/10 text-white/70 shadow-2xl
+              hover:text-white hover:bg-white/10 hover:border-brand
+              disabled:opacity-40 disabled:cursor-not-allowed
+            `}
           >
-            <Download size={14} />
-            <span className="text-xs font-bold">Export</span>
+            <Download size={18} />
+            {/* Hover Label */}
+            <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+              Export (Coming Soon)
+            </span>
           </button>
 
           {/* View Mode Selector */}
-          <div className="flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
+          <div className="flex flex-col gap-2 bg-black border border-white/10 rounded-full p-2 shadow-2xl">
             {(["Schematic", "Layout", "3D", "BOM"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
-                  view === v
-                    ? "bg-[#0038DF] text-white shadow-lg"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
-                }`}
+                className={`
+                  group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
+                  ${
+                    view === v
+                      ? "bg-[#0038DF] text-white shadow-lg scale-110"
+                      : "text-white/50 hover:text-white hover:bg-white/10"
+                  }
+                `}
               >
-                {v}
+                {viewModeConfig[v].icon}
+
+                {/* Hover Label */}
+                <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+                  {viewModeConfig[v].label}
+                </span>
               </button>
             ))}
           </div>
