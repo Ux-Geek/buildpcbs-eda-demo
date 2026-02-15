@@ -56,6 +56,19 @@ export async function getProjectState(
 }
 
 /**
+ * DEBUG ONLY: Get project state WITHOUT authentication
+ * Used by /debug/project/[id] route for support access
+ */
+export async function getProjectStateDebug(
+  projectId: string,
+): Promise<ProjectState> {
+  const response = await get<{ success: boolean; data: ProjectState }>(
+    `/api/projects/debug/${projectId}/state`,
+  );
+  return response.data;
+}
+
+/**
  * Fork an existing project to create a copy
  */
 export async function forkProject(projectId: string): Promise<ForkResponse> {

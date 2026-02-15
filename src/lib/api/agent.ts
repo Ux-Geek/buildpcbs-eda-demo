@@ -36,6 +36,24 @@ export async function getChatHistory(
 }
 
 /**
+ * DEBUG ONLY: Get chat history WITHOUT authentication
+ */
+export async function getChatHistoryDebug(
+  projectId: string,
+  options?: { limit?: number; beforeId?: string },
+): Promise<ChatHistoryResponse> {
+  const params: Record<string, string> = {};
+  if (options?.limit) params.limit = options.limit.toString();
+  if (options?.beforeId) params.beforeId = options.beforeId;
+
+  const response = await get<{ success: boolean; data: ChatHistoryResponse }>(
+    `/api/chat/debug/history/${projectId}`,
+    params,
+  );
+  return response.data;
+}
+
+/**
  * Stream agent execution using fetch with ReadableStream
  * Provides more control over the stream than EventSource
  *

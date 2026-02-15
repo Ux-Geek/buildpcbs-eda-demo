@@ -19,7 +19,7 @@ export interface ChangeCard {
 }
 
 export type FidelityMode = "Concept" | "Draft" | "Production";
-export type ViewMode = "Layout" | "Schematic" | "3D";
+export type ViewMode = "Layout" | "Schematic" | "3D" | "BOM";
 
 export interface AppState {
   components: Component[];

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import PCBRenderer from "@/components/PCBRenderer";
 import ChatInterface from "@/components/ChatInterface";
 import { ProjectSidebar } from "@/components/ProjectSidebar";
+import { BOMDisplay } from "@/components/BOMDisplay";
 import { Component, ViewMode, AppMode, Message } from "@/types";
 import { useAgentStream } from "@/hooks/useAgentStream";
 import { ChevronDown, Download } from "lucide-react";
@@ -11,8 +12,12 @@ import { API_BASE_URL } from "@/lib/api/client";
 import { LoginButton } from "@/components/LoginButton";
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
-import { createProject, getProjectState } from "@/lib/api/projects";
-import { getChatHistory } from "@/lib/api/agent";
+import {
+  createProject,
+  getProjectState,
+  getProjectStateDebug,
+} from "@/lib/api/projects";
+import { getChatHistory, getChatHistoryDebug } from "@/lib/api/agent";
 import {
   convertSoupToGerberCommands,
   stringifyGerberCommandLayers,
@@ -71,9 +76,13 @@ const Logo = () => (
 interface WorkspaceProps {
   initialProjectId?: string;
   className?: string;
+  debugMode?: boolean; // Bypass authentication for admin/debug access
 }
 
-export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
+export const Workspace: React.FC<WorkspaceProps> = ({
+  initialProjectId,
+  debugMode = false,
+}) => {
   const router = useRouter();
 
   // Initialize app mode based on projectId presence
@@ -94,6 +103,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
   );
   const [displayedCode, setDisplayedCode] = useState<string | null>(null);
   const [circuitJson, setCircuitJson] = useState<any | null>(null);
+  const [bom, setBom] = useState<any[] | null>(null);
   const [showCode, setShowCode] = useState(false);
   const isDev = process.env.NODE_ENV === "development";
   const [authInitTimeout, setAuthInitTimeout] = useState(false);
@@ -128,16 +138,28 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     async function loadProject() {
       if (!projectId) return;
 
-      // Don't load project data if user is not authenticated
-      if (!authenticated) {
+      // Don't load project data if user is not authenticated (unless in debug mode)
+      if (!authenticated && !debugMode) {
         console.log("Waiting for authentication before loading project...");
         return;
       }
 
       try {
+        // Use debug endpoint if in debug mode
+        const getProjectStateFn = debugMode
+          ? getProjectStateDebug
+          : getProjectState;
+        const getChatHistoryFn = debugMode
+          ? getChatHistoryDebug
+          : getChatHistory;
+
+        // Load both project data and chat history
+        const projectDataPromise = getProjectStateFn(projectId);
+        const historyDataPromise = getChatHistoryFn(projectId, { limit: 50 });
+
         const [projectData, historyData] = await Promise.all([
-          getProjectState(projectId),
-          getChatHistory(projectId, { limit: 50 }),
+          projectDataPromise,
+          historyDataPromise,
         ]);
 
         if (historyData?.messages) {
@@ -193,6 +215,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
         if (projectData?.circuitJson) {
           setCircuitJson(projectData.circuitJson);
         }
+
+        if (projectData?.bom) {
+          setBom(projectData.bom);
+        }
         // TODO: Load components/code if available in projectData
         // if (projectData.ecadCode) ...
       } catch (err) {
@@ -240,12 +266,18 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
     if (latestCode) {
       setDisplayedCode(latestCode);
 
-      // Reload circuitJson from backend since it was compiled when code was saved
+      // Reload circuitJson and BOM from backend since it was compiled when code was saved
       if (projectId) {
-        getProjectState(projectId)
+        const getProjectStateFn = debugMode
+          ? getProjectStateDebug
+          : getProjectState;
+        getProjectStateFn(projectId)
           .then((projectState) => {
             if (projectState?.circuitJson) {
               setCircuitJson(projectState.circuitJson);
+            }
+            if (projectState?.bom) {
+              setBom(projectState.bom);
             }
           })
           .catch((err) => {
@@ -472,6 +504,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
                 spellCheck={false}
               />
             </div>
+          ) : view === "BOM" ? (
+            <div className="w-full h-full">
+              <BOMDisplay bom={bom} />
+            </div>
           ) : (
             <div className="w-full h-full">
               <PCBRenderer
@@ -559,7 +595,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({ initialProjectId }) => {
 
           {/* View Mode Selector */}
           <div className="flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
-            {(["Schematic", "Layout", "3D"] as ViewMode[]).map((v) => (
+            {(["Schematic", "Layout", "3D", "BOM"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
