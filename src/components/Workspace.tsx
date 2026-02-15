@@ -102,6 +102,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     initialProjectId || null,
   );
   const [displayedCode, setDisplayedCode] = useState<string | null>(null);
+  const [codeExplanation, setCodeExplanation] = useState<string | null>(null);
   const [circuitJson, setCircuitJson] = useState<any | null>(null);
   const [bom, setBom] = useState<any[] | null>(null);
   const [showCode, setShowCode] = useState(false);
@@ -210,6 +211,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
         if (projectData?.ecadCode) {
           setDisplayedCode(projectData.ecadCode);
+          setCodeExplanation(projectData.ecadExplanation || null);
         }
 
         if (projectData?.circuitJson) {
@@ -496,13 +498,32 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             `}
         >
           {showCode ? (
-            <div className="w-full h-full bg-[#1e1e1e] text-[#d4d4d4] p-4 overflow-auto font-mono text-[13px] leading-relaxed">
-              <textarea
-                className="w-full h-full bg-transparent resize-none focus:outline-none font-mono"
-                value={displayedCode || ""}
-                readOnly
-                spellCheck={false}
-              />
+            <div className="w-full h-full bg-[#1e1e1e] text-[#d4d4d4] overflow-auto">
+              {/* Explanation Header */}
+              {codeExplanation && (
+                <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-l-4 border-blue-400 p-4 backdrop-blur-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 text-blue-400 text-lg">💡</div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold text-blue-300 uppercase tracking-wide mb-1.5">
+                        Design Notes
+                      </div>
+                      <p className="text-sm text-white/90 leading-relaxed">
+                        {codeExplanation}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Code Editor */}
+              <div className="p-4">
+                <textarea
+                  className="w-full h-[calc(100%-1rem)] bg-transparent resize-none focus:outline-none font-mono"
+                  value={displayedCode || ""}
+                  readOnly
+                  spellCheck={false}
+                />
+              </div>
             </div>
           ) : view === "BOM" ? (
             <div className="w-full h-full">
