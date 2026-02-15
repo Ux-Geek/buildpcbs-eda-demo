@@ -40,8 +40,11 @@ export const BOMDisplay: React.FC<BOMDisplayProps> = ({ bom, className }) => {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <table className="w-full">
-          <thead className="sticky top-0 bg-black/95 border-b border-white/10">
+          <thead className="sticky top-0 bg-black/95 border-b border-white/10 z-10">
             <tr>
+              <th className="text-left px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-wide w-24">
+                Qty
+              </th>
               <th className="text-left px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-wide">
                 Designator
               </th>
@@ -49,30 +52,42 @@ export const BOMDisplay: React.FC<BOMDisplayProps> = ({ bom, className }) => {
                 Value
               </th>
               <th className="text-left px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-wide">
-                Footprint
+                MPN
               </th>
-              <th className="text-right px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-wide">
-                Qty
+              <th className="text-left px-6 py-3 text-xs font-bold text-white/50 uppercase tracking-wide">
+                Footprint
               </th>
             </tr>
           </thead>
           <tbody>
-            {bom.map((item, index) => (
+            {bom.map((item: any, index) => (
               <tr
                 key={index}
                 className="border-b border-white/5 hover:bg-white/5 transition-colors"
               >
+                <td className="px-6 py-3 text-sm font-mono text-white/90">
+                  {item.quantity}
+                </td>
                 <td className="px-6 py-3 text-sm font-mono text-white/70">
                   {item.name}
                 </td>
-                <td className="px-6 py-3 text-sm font-mono text-white/90">
+                <td className="px-6 py-3 text-sm font-mono text-white/90 font-bold text-blue-300">
                   {item.value}
                 </td>
                 <td className="px-6 py-3 text-sm font-mono text-white/60">
-                  {item.footprint}
+                  {item.mpn ? (
+                    <span className="text-green-400">{item.mpn}</span>
+                  ) : (
+                    <span className="text-white/20">-</span>
+                  )}
+                  {item.manufacturer && (
+                    <div className="text-[10px] text-white/40">
+                      {item.manufacturer}
+                    </div>
+                  )}
                 </td>
-                <td className="px-6 py-3 text-sm font-mono text-white/90 text-right">
-                  {item.quantity}
+                <td className="px-6 py-3 text-sm font-mono text-white/60">
+                  {item.footprint}
                 </td>
               </tr>
             ))}

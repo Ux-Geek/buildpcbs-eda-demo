@@ -218,7 +218,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           setCircuitJson(projectData.circuitJson);
         }
 
-        if (projectData?.bom) {
+        if (projectData?.specifications?.components) {
+          setBom(projectData.specifications.components);
+        } else if (projectData?.bom) {
           setBom(projectData.bom);
         }
         // TODO: Load components/code if available in projectData
@@ -607,7 +609,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           {/* Export Button */}
           <button
             onClick={handleExport}
-            disabled={!displayedCode && !circuitJson}
+            disabled={true}
             className="bg-black border border-white/10 rounded-full px-6 py-2 shadow-2xl flex items-center gap-2 text-white/70 hover:text-white hover:border-brand transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download size={14} />

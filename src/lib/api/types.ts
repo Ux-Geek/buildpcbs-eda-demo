@@ -80,6 +80,9 @@ export interface ProjectState {
   mcadExplanation?: string;
   circuitJson?: any;
   bom?: any[];
+  specifications?: {
+    components?: any[];
+  } & Record<string, any>;
   metadata?: Record<string, any>;
 }
 
