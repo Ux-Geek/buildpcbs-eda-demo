@@ -18,6 +18,9 @@ const MODELS = [
   { id: "gpt-4o", name: "GPT-4o" },
   { id: "gpt-4o-mini", name: "GPT-4o Mini" },
   { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
+  { id: "claude-3-opus-20240229", name: "Claude 3 Opus" },
+  { id: "claude-opus-4-6", name: "Claude Opus Preview (4.6)" },
+  { id: "claude-sonnet-4-5-20250929", name: "Claude 4.5" },
 ];
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -26,7 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
   isLoading,
   mode,
-  selectedModel = "gemini-2.5-pro",
+  selectedModel = "claude-opus-4-6",
   onSelectModel,
   isAuthenticated,
 }) => {

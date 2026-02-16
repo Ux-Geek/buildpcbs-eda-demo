@@ -34,6 +34,11 @@ import {
 } from "circuit-json-to-gerber";
 import JSZip from "jszip";
 
+// Simulation Imports
+import { generateNetlist } from "@/lib/simulation/netlistGenerator";
+import { Simulator } from "@/lib/simulation/simulator";
+import { SimulationCanvas } from "@/components/simulation/SimulationCanvas";
+
 const Logo = () => (
   <svg
     width="100"
@@ -97,6 +102,10 @@ const viewModeConfig: Record<
   BOM: { icon: <ScrollText size={18} />, label: "Bill of Materials" },
 };
 
+// Helper function to get last value from simulation arrays
+const getLastValue = (arr: number[]) =>
+  arr && arr.length > 0 ? arr[arr.length - 1] : 0;
+
 export const Workspace: React.FC<WorkspaceProps> = ({
   initialProjectId,
   debugMode = false,
@@ -114,7 +123,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [componentContext, setComponentContext] = useState<
     Record<string, string>
   >({});
-  const [selectedModel, setSelectedModel] = useState("gemini-2.5-pro");
+  const [selectedModel, setSelectedModel] = useState("claude-opus-4-6");
   const [isGenerating, setIsGenerating] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,
@@ -127,10 +136,38 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const isDev = process.env.NODE_ENV === "development";
   const [authInitTimeout, setAuthInitTimeout] = useState(false);
 
+  // Simulation State
+  const [simulationMode, setSimulationMode] = useState(false);
+  const [simulationState, setSimulationState] = useState<{
+    nodes: Record<string, number>;
+    currents: Record<string, number>;
+  }>({ nodes: {}, currents: {} });
+  const simulatorRef = useRef<Simulator | null>(null);
+
   const privy = usePrivy();
   const { authenticated, login, logout, user, ready } = privy;
 
-  // Fallback: if Privy never reports ready, show login after a short delay
+  // Agent Stream Hook - MUST be before any handlers that use 'execute'
+  const {
+    execute,
+    isStreaming,
+    status,
+    latestCode,
+    content,
+    tasks,
+    openingNote,
+    closingNote,
+    toggleTask,
+    events,
+    error,
+    tools,
+    projectName,
+  } = useAgentStream(projectId || "temp-id");
+
+  // Derived State
+  const isSplit = appMode === "SPLIT_VIEW";
+
+  // Effects
   useEffect(() => {
     const timer = setTimeout(() => setAuthInitTimeout(true), 2000);
     return () => clearTimeout(timer);
@@ -157,14 +194,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     async function loadProject() {
       if (!projectId) return;
 
-      // Don't load project data if user is not authenticated (unless in debug mode)
       if (!authenticated && !debugMode) {
         console.log("Waiting for authentication before loading project...");
         return;
       }
 
       try {
-        // Use debug endpoint if in debug mode
         const getProjectStateFn = debugMode
           ? getProjectStateDebug
           : getProjectState;
@@ -172,7 +207,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           ? getChatHistoryDebug
           : getChatHistory;
 
-        // Load both project data and chat history
         const projectDataPromise = getProjectStateFn(projectId);
         const historyDataPromise = getChatHistoryFn(projectId, { limit: 50 });
 
@@ -194,23 +228,19 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 status: t.status,
                 details: t.result
                   ? JSON.stringify(t.result, null, 2)
-                  : undefined,
+                  : t.error || undefined,
                 timing: t.timing,
               })),
               openingNote:
                 msg.metadata?.process?.openingNote || msg.metadata?.openingNote,
               closingNote:
                 msg.metadata?.process?.closingNote || msg.metadata?.closingNote,
-              // TODO: Map other fields if needed
             }),
           );
           setMessages((prev) => {
-            // If we are generating (e.g. creating a new project with a prompt),
-            // preserve the last optimistic user message so it doesn't disappear.
             if (isGenerating && prev.length > 0) {
               const lastMsg = prev[prev.length - 1];
               if (lastMsg.role === "user") {
-                // Check if this message is already not in the loaded messages (by ID or Content)
                 const isAlreadyLoaded = loadedMessages.some(
                   (m) =>
                     m.id === lastMsg.id ||
@@ -241,8 +271,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         } else if (projectData?.bom) {
           setBom(projectData.bom);
         }
-        // TODO: Load components/code if available in projectData
-        // if (projectData.ecadCode) ...
       } catch (err) {
         console.error("Failed to load project:", err);
       }
@@ -253,115 +281,21 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, [projectId, authenticated]);
 
-  const {
-    execute,
-    isStreaming,
-    status,
-    latestCode,
-    content,
-    tasks,
-    openingNote,
-    closingNote,
-    toggleTask,
-    events,
-    error,
-    tools,
-    projectName,
-  } = useAgentStream(projectId || "temp-id");
-
-  // Update document title when project name changes
+  // Listen for real-time BOM updates from tool executions
   useEffect(() => {
-    if (projectName) {
-      document.title = `${projectName} | BuildPCBs`;
-    }
-  }, [projectName]);
-
-  // Log errors for debugging
-  useEffect(() => {
-    if (error) {
-      console.error("Agent execution error:", error);
-    }
-  }, [error]);
-
-  // Sync displayedCode with streaming latestCode
-  useEffect(() => {
-    if (latestCode) {
-      setDisplayedCode(latestCode);
-
-      // Reload circuitJson and BOM from backend since it was compiled when code was saved
-      if (projectId) {
-        const getProjectStateFn = debugMode
-          ? getProjectStateDebug
-          : getProjectState;
-        getProjectStateFn(projectId)
-          .then((projectState) => {
-            if (projectState?.circuitJson) {
-              setCircuitJson(projectState.circuitJson);
-            }
-            if (projectState?.bom) {
-              setBom(projectState.bom);
-            }
-          })
-          .catch((err) => {
-            console.error("Failed to reload circuitJson:", err);
-          });
+    // specificially look for update_ecad_code tool result
+    const lastEvent = events[events.length - 1];
+    if (
+      lastEvent?.type === "tool_result" &&
+      (lastEvent.data?.toolName === "update_ecad_code" ||
+        lastEvent.toolName === "update_ecad_code")
+    ) {
+      const result = lastEvent.data?.toolResult || lastEvent.toolResult;
+      if (result?.success && result?.data?.bom) {
+        setBom(result.data.bom);
       }
     }
-  }, [latestCode, projectId]);
-
-  const isSplit = appMode === "SPLIT_VIEW";
-
-  const handlePrompt = async (text: string) => {
-    // Add User Message
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-
-    if (appMode === "LANDING") {
-      setAppMode("SPLIT_VIEW");
-    }
-
-    setIsGenerating(true);
-
-    try {
-      let activeProjectId = projectId;
-
-      if (!activeProjectId) {
-        try {
-          const newProject = await createProject(
-            "Untitled Project",
-            undefined,
-            text,
-            "ecad",
-          );
-          activeProjectId = newProject.id;
-          setProjectId(activeProjectId);
-
-          // Use window.history to update URL without triggering re-render/navigation
-          // This keeps the current component instance and stream alive
-          window.history.pushState({}, "", `/p/${activeProjectId}`);
-
-          // Force layout to Split View (Sidebar) so user sees the board
-          setAppMode("SPLIT_VIEW");
-        } catch (e) {
-          console.error("Failed to create project", e);
-          setIsGenerating(false);
-          return;
-        }
-      }
-
-      await execute(text, {
-        model: selectedModel,
-        projectId: activeProjectId!,
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  }, [events]);
 
   // Handle streaming completion to add final message
   const prevStreamingRef = useRef(false);
@@ -412,26 +346,177 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     prevStreamingRef.current = isStreaming;
   }, [isStreaming, content, tasks, tools, openingNote, closingNote]);
 
+  // Update document title when project name changes
+  useEffect(() => {
+    if (projectName) {
+      document.title = `${projectName} | BuildPCBs`;
+    }
+  }, [projectName]);
+
+  // Log errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("Agent execution error:", error);
+    }
+  }, [error]);
+
+  // DEBUG: Log circuitJson changes
+  useEffect(() => {
+    console.log(
+      "[Workspace] circuitJson state changed:",
+      circuitJson ? "HAS DATA" : "NULL/UNDEFINED",
+      circuitJson,
+    );
+  }, [circuitJson]);
+
+  // DEBUG: Log BOM changes
+  useEffect(() => {
+    console.log(
+      "[Workspace] BOM state changed:",
+      bom ? `${bom.length} items` : "NULL/UNDEFINED",
+      bom,
+    );
+  }, [bom]);
+
+  // Sync displayedCode with streaming latestCode
+  useEffect(() => {
+    if (latestCode) {
+      setDisplayedCode(latestCode);
+    }
+  }, [latestCode]);
+
   // Real-time BOM update from tool results
   useEffect(() => {
     if (tools && tools.length > 0) {
       const lastTool = tools[tools.length - 1];
       if (
         lastTool.status === "completed" &&
-        lastTool.name === "update_ecad_code" &&
-        lastTool.result?.data?.bom
+        lastTool.name === "update_ecad_code"
       ) {
-        console.log(
-          "Auto-updating BOM from tool result",
-          lastTool.result.data.bom,
-        );
-        setBom(lastTool.result.data.bom);
+        // Direct update from tool result for instant feedback
+        if (lastTool.result?.data) {
+          console.log("Auto-updating State from tool result");
+
+          if (lastTool.result.data.bom) {
+            setBom(lastTool.result.data.bom);
+          }
+
+          if (lastTool.result.data.circuitJson) {
+            setCircuitJson(lastTool.result.data.circuitJson);
+          }
+        }
+
+        // Fallback: fetch latest project state to ensure consistency
+        if (projectId) {
+          const getProjectStateFn = debugMode
+            ? getProjectStateDebug
+            : getProjectState;
+          getProjectStateFn(projectId)
+            .then((state) => {
+              if (state?.circuitJson && !lastTool.result?.data?.circuitJson) {
+                setCircuitJson(state.circuitJson);
+              }
+              // Optional: sync BOM again just to be sure
+              if (state?.bom && !lastTool.result?.data?.bom) {
+                setBom(state.bom);
+              }
+            })
+            .catch(console.error);
+        }
       }
     }
   }, [tools]);
 
+  // Handlers
   const handlePreview = (changeId: string) => {
     setAppMode("SPLIT_VIEW");
+  };
+
+  const handlePrompt = async (text: string) => {
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    if (appMode === "LANDING") {
+      setAppMode("SPLIT_VIEW");
+    }
+
+    setIsGenerating(true);
+
+    try {
+      let activeProjectId = projectId;
+
+      if (!activeProjectId) {
+        try {
+          const newProject = await createProject(
+            "Untitled Project",
+            undefined,
+            text,
+            "ecad",
+          );
+          activeProjectId = newProject.id;
+          setProjectId(activeProjectId);
+          window.history.pushState({}, "", `/p/${activeProjectId}`);
+          setAppMode("SPLIT_VIEW");
+        } catch (e) {
+          console.error("Failed to create project", e);
+          setIsGenerating(false);
+          return;
+        }
+      }
+
+      await execute(text, {
+        model: selectedModel,
+        projectId: activeProjectId!,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleToggleSimulation = async () => {
+    if (simulationMode) {
+      setSimulationMode(false);
+      return;
+    }
+
+    // Button is disabled if !circuitJson, so we don't need to alert here
+    if (!circuitJson) return;
+
+    setSimulationMode(true);
+
+    try {
+      const netlist = generateNetlist(circuitJson);
+      console.log("Generated Netlist:", netlist);
+
+      if (!simulatorRef.current) {
+        simulatorRef.current = new Simulator();
+      }
+
+      simulatorRef.current.loadNetlist(netlist);
+
+      const result = await simulatorRef.current.run();
+
+      const nodes: Record<string, number> = {};
+      const currents: Record<string, number> = {};
+
+      Object.keys(result.nodes).forEach(
+        (k) => (nodes[k] = getLastValue(result.nodes[k])),
+      );
+      Object.keys(result.currents).forEach(
+        (k) => (currents[k] = getLastValue(result.currents[k])),
+      );
+
+      setSimulationState({ nodes, currents });
+    } catch (e) {
+      console.error("Simulation error:", e);
+      alert("Simulation failed. See console for details.");
+      setSimulationMode(false);
+    }
   };
 
   const handleExport = async () => {
@@ -441,23 +526,16 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     }
 
     try {
-      // Convert circuit JSON to Gerber commands
       const gerberCommands = convertSoupToGerberCommands(circuitJson);
-
-      // Stringify Gerber commands for each layer
       const gerberFiles = stringifyGerberCommandLayers(gerberCommands);
-
-      // Generate drill file
       const drillCommands = convertSoupToExcellonDrillCommands({
         circuitJson,
         is_plated: true,
       });
       const drillFile = stringifyExcellonDrill(drillCommands);
 
-      // Create ZIP file
       const zip = new JSZip();
 
-      // Add Gerber files with standard naming convention
       zip.file("project-F_Cu.gbr", gerberFiles.F_Cu);
       zip.file("project-B_Cu.gbr", gerberFiles.B_Cu);
       zip.file("project-F_SilkScreen.gbr", gerberFiles.F_SilkScreen);
@@ -469,16 +547,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       zip.file("project-Edge_Cuts.gbr", gerberFiles.Edge_Cuts);
       zip.file("project.drl", drillFile);
 
-      // Also include the source code and circuit JSON for reference
       if (displayedCode) {
         zip.file("source.tsx", displayedCode);
       }
       zip.file("circuit.json", JSON.stringify(circuitJson, null, 2));
 
-      // Generate ZIP blob
       const zipBlob = await zip.generateAsync({ type: "blob" });
 
-      // Download ZIP file
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
@@ -508,7 +583,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       }
     : undefined;
 
-  // If Privy isn't ready yet, show a lightweight placeholder to avoid a blank screen
   if (!ready && !authInitTimeout) {
     return (
       <div className="h-screen w-screen bg-black text-white flex items-center justify-center">
@@ -521,8 +595,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
   return (
     <div className="relative h-screen w-full bg-black text-white/70 overflow-hidden font-['DM_Sans']">
-      {/* Project Sidebar */}
-      {/* Only show if authenticated? Or always? */}
       {authenticated && (
         <ProjectSidebar currentProjectId={projectId || undefined} />
       )}
@@ -537,7 +609,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         >
           {showCode ? (
             <div className="w-full h-full bg-[#1e1e1e] text-[#d4d4d4] overflow-auto">
-              {/* Explanation Header */}
               {codeExplanation && (
                 <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-l-4 border-blue-400 p-4 backdrop-blur-sm">
                   <div className="flex items-start gap-3">
@@ -553,7 +624,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   </div>
                 </div>
               )}
-              {/* Code Editor */}
               <div className="p-4">
                 <textarea
                   className="w-full h-[calc(100%-1rem)] bg-transparent resize-none focus:outline-none font-mono"
@@ -563,6 +633,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 />
               </div>
             </div>
+          ) : simulationMode ? (
+            <SimulationCanvas
+              circuitJson={circuitJson}
+              simulationState={simulationState}
+            />
           ) : view === "BOM" ? (
             <div className="w-full h-full">
               <BOMDisplay bom={bom} />
@@ -599,7 +674,20 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             streamingMessage={streamingMessage}
             onSendMessage={handlePrompt}
             onPreview={handlePreview}
-            onToggleTask={toggleTask}
+            onToggleTask={(taskId) => {
+              // 1. Try to toggle in streaming state
+              toggleTask(taskId);
+
+              // 2. Try to toggle in historical messages state
+              setMessages((prev) =>
+                prev.map((msg) => ({
+                  ...msg,
+                  tasks: msg.tasks?.map((t) =>
+                    t.id === taskId ? { ...t, isExpanded: !t.isExpanded } : t,
+                  ),
+                })),
+              );
+            }}
             isLoading={isStreaming}
             selectedModel={selectedModel}
             onSelectModel={setSelectedModel}
@@ -642,7 +730,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       {isSplit && (
         <div className="absolute top-24 right-8 z-40 flex flex-col gap-3">
-          {/* Export Button */}
           <button
             onClick={handleExport}
             disabled={true}
@@ -654,13 +741,32 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             `}
           >
             <Download size={18} />
-            {/* Hover Label */}
             <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
               Export (Coming Soon)
             </span>
           </button>
 
-          {/* View Mode Selector */}
+          <button
+            onClick={handleToggleSimulation}
+            disabled={!circuitJson}
+            className={`
+              group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
+              ${simulationMode ? "bg-green-600 text-white shadow-lg scale-110" : "bg-black border border-white/10 text-white/70 hover:text-white hover:bg-white/10 hover:border-green-500"}
+              disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-black disabled:hover:border-white/10 disabled:hover:text-white/70
+              shadow-2xl
+            `}
+          >
+            {simulationMode ? (
+              <div className="w-3 h-3 bg-white rounded-[2px]" />
+            ) : (
+              <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5" />
+            )}
+
+            <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+              {simulationMode ? "Stop Simulation" : "Simulate"}
+            </span>
+          </button>
+
           <div className="flex flex-col gap-2 bg-black border border-white/10 rounded-full p-2 shadow-2xl">
             {(["Schematic", "Layout", "3D", "BOM"] as ViewMode[]).map((v) => (
               <button
@@ -676,8 +782,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 `}
               >
                 {viewModeConfig[v].icon}
-
-                {/* Hover Label */}
                 <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
                   {viewModeConfig[v].label}
                 </span>
@@ -687,7 +791,6 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         </div>
       )}
 
-      {/* Dev-only Code Toggle */}
       {isDev && appMode === "SPLIT_VIEW" && (
         <div className="absolute bottom-8 right-8 z-50 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
           <button

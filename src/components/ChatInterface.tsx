@@ -1,4 +1,6 @@
 import React, { useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Send,
   Sparkles,
@@ -92,6 +94,9 @@ const MODELS = [
   { id: "gpt-4o", name: "GPT-4o" },
   { id: "gpt-4o-mini", name: "GPT-4o Mini" },
   { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
+  { id: "claude-3-opus-20240229", name: "Claude 3 Opus" },
+  { id: "claude-opus-4-6", name: "Claude Opus Preview (4.6)" },
+  { id: "claude-sonnet-4-5-20250929", name: "Claude 4.5" },
 ];
 
 const ChatInterface: React.FC<Props> = ({
@@ -102,7 +107,7 @@ const ChatInterface: React.FC<Props> = ({
   onPreview,
   onToggleTask,
   isLoading,
-  selectedModel = "gemini-2.5-pro",
+  selectedModel = "claude-opus-4-6",
   onSelectModel,
   debugEvents,
   debugError,
@@ -140,14 +145,33 @@ const ChatInterface: React.FC<Props> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const prevMessagesLength = useRef(messages.length);
+
   useEffect(() => {
-    scrollToBottom();
+    // Scroll if a new message is added
+    if (messages.length > prevMessagesLength.current) {
+      scrollToBottom();
+      prevMessagesLength.current = messages.length;
+    }
+    // Scroll if streaming content changes (but checking this might still be too aggressive if tasks toggle during stream)
+    // Actually, for streaming, we usually want to follow the tail.
+    // But for historical messages (which is where the issue is), we only want to scroll on add.
+
+    // Let's refine:
+    // 1. If we are streaming (isLoading is true), we should probably stick to bottom.
+    // 2. If we are NOT streaming, we should only scroll if a new message was added.
+  }, [messages.length, isLoading]);
+
+  // Separate effect for streaming content updates to keep it smooth
+  useEffect(() => {
+    if (isLoading && streamingMessage) {
+      scrollToBottom();
+    }
   }, [
-    messages,
+    isLoading,
     streamingMessage?.content,
     streamingMessage?.tasks?.length,
-    streamingMessage?.tasks?.map((t) => t.status).join(","),
-    streamingStatus,
+    // explicitly exclude task expansion state from dependencies
   ]);
   // ... (existing useEffect and handlers)
 
@@ -220,9 +244,68 @@ const ChatInterface: React.FC<Props> = ({
 
         {/* Main Content */}
         {msg.content && (
-          <p className="text-[14px] leading-relaxed whitespace-pre-wrap">
-            {msg.content}
-          </p>
+          <div className="text-[14px] leading-relaxed">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-lg font-bold mt-4 mb-2" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-base font-bold mt-3 mb-2" {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-sm font-bold mt-2 mb-1" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />
+                ),
+                li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                p: ({ node, ...props }) => (
+                  <p className="mb-2 last:mb-0" {...props} />
+                ),
+                a: ({ node, ...props }) => (
+                  <a
+                    className="text-brand hover:underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...props}
+                  />
+                ),
+                code: ({ node, className, children, ...props }: any) => {
+                  const match = /language-(\w+)/.exec(className || "");
+                  const isInline = !match && !String(children).includes("\n");
+                  return isInline ? (
+                    <code
+                      className="bg-white/10 rounded px-1 py-0.5 font-mono text-[12px] text-brand/90"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  ) : (
+                    <div className="my-2 rounded-lg overflow-hidden border border-white/10 bg-black/50">
+                      <div className="px-3 py-1 bg-white/5 border-b border-white/5 text-[10px] uppercase tracking-wider text-white/40 font-mono flex justify-between">
+                        <span>{match?.[1] || "code"}</span>
+                      </div>
+                      <div className="p-3 overflow-x-auto">
+                        <code
+                          className={`font-mono text-[12px] ${className}`}
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      </div>
+                    </div>
+                  );
+                },
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          </div>
         )}
 
         {/* Closing Note */}

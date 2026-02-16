@@ -28,6 +28,8 @@
     "@tscircuit/schematic-viewer": "2.0.56",
     "@types/three": "^0.182.0",
     "circuit-json-to-gerber": "^0.0.47",
+    "circuit-json-to-spice": "^0.0.34",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.34.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.563.0",
@@ -35,6 +37,9 @@
     "next-themes": "^0.4.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "spicey": "^0.0.14",
     "three": "^0.182.0",
     "zustand": "^5.0.11"
   },
