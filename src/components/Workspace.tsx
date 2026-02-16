@@ -732,7 +732,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         <div className="absolute top-24 right-8 z-40 flex flex-col gap-3">
           <button
             onClick={handleExport}
-            disabled={true}
+            disabled={false}
             className={`
               group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
               bg-black border border-white/10 text-white/70 shadow-2xl
@@ -742,7 +742,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
           >
             <Download size={18} />
             <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
-              Export (Coming Soon)
+              Export
             </span>
           </button>
 

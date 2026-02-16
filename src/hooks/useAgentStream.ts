@@ -211,6 +211,10 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
               break;
 
             case "tool_result":
+              console.log(
+                "[useAgentStream] tool_result event received:",
+                event,
+              );
               setTools((prev) => {
                 const toolsReversed = [...prev].reverse();
                 const toolIndex = toolsReversed.findIndex(
@@ -219,17 +223,42 @@ export function useAgentStream(projectId: string): UseAgentStreamReturn {
                     t.status === "running",
                 );
 
-                if (toolIndex === -1) return prev;
+                if (toolIndex === -1) {
+                  console.warn(
+                    "[useAgentStream] No running tool found for result:",
+                    event.data?.toolName || event.toolName,
+                  );
+                  return prev;
+                }
 
                 const actualIndex = prev.length - 1 - toolIndex;
                 const newTools = [...prev];
+                const toolResult = event.data?.toolResult || event.toolResult;
+
+                console.log("[useAgentStream] Tool result extracted:", {
+                  toolName: event.data?.toolName || event.toolName,
+                  hasResult: !!toolResult,
+                  resultKeys: toolResult ? Object.keys(toolResult) : [],
+                  hasData: !!toolResult?.data,
+                  dataKeys: toolResult?.data
+                    ? Object.keys(toolResult.data)
+                    : [],
+                  hasBom: !!toolResult?.data?.bom,
+                  hasCircuitJson: !!toolResult?.data?.circuitJson,
+                });
+
                 newTools[actualIndex] = {
                   ...newTools[actualIndex],
                   status: "completed",
-                  result: event.data?.toolResult || event.toolResult,
+                  result: toolResult,
                   timing:
                     Date.now() - newTools[actualIndex].timestamp.getTime(),
                 };
+
+                console.log(
+                  "[useAgentStream] Updated tool:",
+                  newTools[actualIndex],
+                );
                 return newTools;
               });
               break;

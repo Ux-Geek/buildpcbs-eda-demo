@@ -311,7 +311,27 @@ const ChatInterface: React.FC<Props> = ({
         {/* Closing Note */}
         {msg.closingNote && (
           <div className="mt-3 text-[13px] text-white/80 italic border-l-2 border-green-500 pl-3 py-1 bg-green-500/10 rounded-r">
-            {msg.closingNote}
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => (
+                  <p className="mb-2 last:mb-0">{children}</p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc list-inside space-y-1 my-2">
+                    {children}
+                  </ul>
+                ),
+                li: ({ children }) => <li className="ml-2">{children}</li>,
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-white">
+                    {children}
+                  </strong>
+                ),
+              }}
+            >
+              {msg.closingNote}
+            </ReactMarkdown>
           </div>
         )}
 
