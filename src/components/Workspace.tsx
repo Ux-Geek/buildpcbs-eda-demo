@@ -746,7 +746,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             </span>
           </button>
 
-          <button
+          {/* <button
             onClick={handleToggleSimulation}
             disabled={!circuitJson}
             className={`
@@ -765,7 +765,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
               {simulationMode ? "Stop Simulation" : "Simulate"}
             </span>
-          </button>
+          </button> */}
 
           <div className="flex flex-col gap-2 bg-black border border-white/10 rounded-full p-2 shadow-2xl">
             {(["Schematic", "Layout", "3D", "BOM"] as ViewMode[]).map((v) => (
