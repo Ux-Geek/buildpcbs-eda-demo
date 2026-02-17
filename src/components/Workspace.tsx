@@ -14,6 +14,7 @@ import {
   Layers,
   Box,
   ScrollText,
+  List,
 } from "lucide-react";
 
 import { API_BASE_URL } from "@/lib/api/client";
@@ -730,6 +731,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       {isSplit && (
         <div className="absolute top-24 right-8 z-40 flex flex-col gap-3">
+          <button
+            onClick={() => console.log("List on Explorer clicked")}
+            disabled={false}
+            className={`
+              group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
+              bg-black border border-white/10 text-white/70 shadow-2xl
+              hover:text-white hover:bg-white/10 hover:border-brand
+              disabled:opacity-40 disabled:cursor-not-allowed
+            `}
+          >
+            <List size={18} />
+            <span className="absolute right-full mr-3 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+              List on Explorer
+            </span>
+          </button>
+
           <button
             onClick={handleExport}
             disabled={false}

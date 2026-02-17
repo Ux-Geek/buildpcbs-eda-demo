@@ -178,7 +178,7 @@ export const processPrompt = async (
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-pro-preview",
       contents: `
         You are an expert PCB designer and helpful assistant.
         Current board state components: ${JSON.stringify(currentComponents)}
