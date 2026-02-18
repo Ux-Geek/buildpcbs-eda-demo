@@ -29,7 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
   isLoading,
   mode,
-  selectedModel = "claude-opus-4-6",
+  selectedModel = "gemini-3-pro-preview",
   onSelectModel,
   isAuthenticated,
 }) => {

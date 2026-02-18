@@ -124,7 +124,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [componentContext, setComponentContext] = useState<
     Record<string, string>
   >({});
-  const [selectedModel, setSelectedModel] = useState("claude-opus-4-6");
+  const [selectedModel, setSelectedModel] = useState("gemini-3-pro-preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,
@@ -625,13 +625,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                   </div>
                 </div>
               )}
-              <div className="p-4">
-                <textarea
-                  className="w-full h-[calc(100%-1rem)] bg-transparent resize-none focus:outline-none font-mono"
-                  value={displayedCode || ""}
-                  readOnly
-                  spellCheck={false}
-                />
+              <div className="p-4 h-[calc(100%-0px)] overflow-auto">
+                <pre className="w-full h-full bg-transparent font-mono text-sm text-[#d4d4d4] whitespace-pre-wrap break-words leading-relaxed">
+                  <code>{displayedCode || ""}</code>
+                </pre>
               </div>
             </div>
           ) : simulationMode ? (

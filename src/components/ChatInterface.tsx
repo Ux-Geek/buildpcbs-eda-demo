@@ -107,7 +107,7 @@ const ChatInterface: React.FC<Props> = ({
   onPreview,
   onToggleTask,
   isLoading,
-  selectedModel = "claude-opus-4-6",
+  selectedModel = "gemini-3-pro-preview",
   onSelectModel,
   debugEvents,
   debugError,
