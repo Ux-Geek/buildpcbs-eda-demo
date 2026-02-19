@@ -1,0 +1,3 @@
+module.exports=[76252,a=>{a.v({className:"dm_sans_fab58616-module__EYlhaW__className",variable:"dm_sans_fab58616-module__EYlhaW__variable"})},27572,a=>{"use strict";var b=a.i(81332),c=a.i(76252);let d={className:c.default.className,style:{fontFamily:"'DM Sans', 'DM Sans Fallback'"}};function e({children:a}){return(0,b.jsx)("html",{lang:"en",children:(0,b.jsx)("body",{className:d.className,children:a})})}null!=c.default.variable&&(d.variable=c.default.variable),a.s(["default",()=>e,"metadata",0,{title:"BuildPCBs | AI-Powered EDA",description:"AI-Powered Electronic Design Automation"}],27572)}];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__de83c688._.js.map
