@@ -124,7 +124,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [componentContext, setComponentContext] = useState<
     Record<string, string>
   >({});
-  const [selectedModel, setSelectedModel] = useState("gemini-3-pro-preview");
+  const [selectedModel, setSelectedModel] = useState("gemini-3.1-pro-preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(
     initialProjectId || null,

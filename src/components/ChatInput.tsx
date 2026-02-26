@@ -14,7 +14,7 @@ interface ChatInputProps {
 
 const MODELS = [
   { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-  { id: "gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
+  { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview" },
   { id: "gpt-4o", name: "GPT-4o" },
   { id: "gpt-4o-mini", name: "GPT-4o Mini" },
   { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet" },
@@ -29,7 +29,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
   isLoading,
   mode,
-  selectedModel = "gemini-3-pro-preview",
+  selectedModel = "gemini-3.1-pro-preview",
   onSelectModel,
   isAuthenticated,
 }) => {
