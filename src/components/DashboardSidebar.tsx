@@ -104,7 +104,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </nav>
 
       {/* User / Footer */}
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 space-y-3">
         <div
           className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}
         >
@@ -127,6 +127,13 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             </div>
           )}
         </div>
+
+        {/* Version */}
+        {!isCollapsed && (
+          <div className="text-center text-[10px] text-white/30 font-mono">
+            v1.1
+          </div>
+        )}
       </div>
     </motion.div>
   );

@@ -137,7 +137,12 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   ))}
                 </div>
               </div>
-            </motion.div>
+              {/* Version */}
+              <div className="p-4 border-t border-white/10">
+                <div className="text-center text-[10px] text-white/30 font-mono">
+                  v1.1
+                </div>
+              </div>            </motion.div>
           </>
         )}
       </AnimatePresence>
