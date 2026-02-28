@@ -81,7 +81,6 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                   <ChevronLeft size={16} />
                 </button>
               </div>
-
               <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
                 <button
                   onClick={() => {
@@ -142,7 +141,8 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
                 <div className="text-center text-[10px] text-white/30 font-mono">
                   v1.1
                 </div>
-              </div>            </motion.div>
+              </div>{" "}
+            </motion.div>
           </>
         )}
       </AnimatePresence>
