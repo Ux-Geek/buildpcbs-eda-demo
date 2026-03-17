@@ -7,6 +7,7 @@ import {
   Maximize2,
   ArrowRight,
   AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { AppMode, Message } from "@/types";
 import { TaskProgress } from "./TaskProgress";
@@ -22,23 +23,21 @@ const ToolPills: React.FC<{ tools: AgentTool[] }> = ({ tools }) => {
           key={t.id}
           className={`
             flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-colors cursor-help group relative
-            ${
-              t.status === "running"
-                ? "bg-brand/10 border-brand/20 text-brand"
-                : t.status === "error"
-                  ? "bg-red-500/10 border-red-500/20 text-red-500"
-                  : "bg-white/5 border-white/10 text-white/50"
+            ${t.status === "running"
+              ? "bg-brand/10 border-brand/20 text-brand"
+              : t.status === "error"
+                ? "bg-red-500/10 border-red-500/20 text-red-500"
+                : "bg-white/5 border-white/10 text-white/50"
             }
           `}
         >
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              t.status === "running"
-                ? "bg-[#0038DF] animate-pulse"
-                : t.status === "error"
-                  ? "bg-[#ff4444]"
-                  : "bg-[#555555]"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full ${t.status === "running"
+              ? "bg-[#0038DF] animate-pulse"
+              : t.status === "error"
+                ? "bg-[#ff4444]"
+                : "bg-[#555555]"
+              }`}
           />
           <span>{t.name}</span>
 
@@ -76,6 +75,7 @@ interface Props {
   onSendMessage: (text: string) => void;
   onPreview: (changeId: string) => void;
   onToggleTask?: (taskId: string) => void;
+  onRevertToMessage?: (messageId: string) => void;
   isLoading: boolean;
   selectedModel?: string;
   onSelectModel?: (model: string) => void;
@@ -106,6 +106,7 @@ const ChatInterface: React.FC<Props> = ({
   onSendMessage,
   onPreview,
   onToggleTask,
+  onRevertToMessage,
   isLoading,
   selectedModel = "gemini-3.1-pro-preview",
   onSelectModel,
@@ -121,6 +122,19 @@ const ChatInterface: React.FC<Props> = ({
   const [input, setInput] = React.useState("");
   const [showModelSelector, setShowModelSelector] = React.useState(false);
   const [showDebug, setShowDebug] = React.useState(false);
+  const [isErrorDismissed, setIsErrorDismissed] = React.useState(false);
+
+  useEffect(() => {
+    setIsErrorDismissed(false);
+  }, [error]);
+
+  const handleRetry = () => {
+    const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+    if (lastUserMsg) {
+      onSendMessage(lastUserMsg.content);
+      setIsErrorDismissed(true);
+    }
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectorRef = useRef<HTMLDivElement>(null);
 
@@ -192,11 +206,11 @@ const ChatInterface: React.FC<Props> = ({
   const containerClasses = (() => {
     switch (mode) {
       case "LANDING":
-        return "absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px]";
+        return "absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px]";
       case "CHAT_PREVIEW":
         return "relative w-[720px] mx-auto mt-[10vh] h-[80vh] flex flex-col";
       case "SPLIT_VIEW":
-        return "relative w-full h-full flex flex-col border-r border-white/10 bg-black";
+        return "relative w-full h-full flex flex-col border-r border-white/10 bg-[#232323]";
       default:
         return "";
     }
@@ -205,21 +219,15 @@ const ChatInterface: React.FC<Props> = ({
   const showExamples = mode === "LANDING" && !isLoading;
 
   const renderMessageContent = (msg: Message) => {
-    console.log("🎨 Rendering message:", {
-      id: msg.id,
-      role: msg.role,
-      hasOpening: !!msg.openingNote,
-      hasClosing: !!msg.closingNote,
-      hasContent: !!msg.content,
-      tasks: msg.tasks?.length || 0,
-      tools: msg.tools?.length || 0,
-    });
     return (
       <>
         {msg.role === "assistant" && (
-          <div className="flex items-center gap-2 mb-2 text-brand">
-            <Sparkles size={14} />
-            <span className="text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#0038DF]" style={{ boxShadow: "0 0 6px rgba(0,56,223,0.6)" }} />
+            <span
+              className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+              style={{ color: "#555555" }}
+            >
               Agent
             </span>
           </div>
@@ -227,7 +235,14 @@ const ChatInterface: React.FC<Props> = ({
 
         {/* Opening Note */}
         {msg.openingNote && (
-          <div className="mb-3 text-[13px] text-white/80 italic border-l-2 border-brand pl-3 py-1 bg-brand/10 rounded-r">
+          <div
+            className="mb-3 text-[13px] italic pl-3 py-1.5 rounded-r-md"
+            style={{
+              color: "rgba(255,255,255,0.7)",
+              borderLeft: "2px solid rgba(0,56,223,0.4)",
+              background: "rgba(0,56,223,0.05)",
+            }}
+          >
             {msg.openingNote}
           </div>
         )}
@@ -244,55 +259,105 @@ const ChatInterface: React.FC<Props> = ({
 
         {/* Main Content */}
         {msg.content && (
-          <div className="text-[14px] leading-relaxed">
+          <div
+            className="text-[13px]"
+            style={{
+              color: msg.role === "user" ? "#ffffff" : "#999999",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.6,
+            }}
+          >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ node, ...props }) => (
-                  <h1 className="text-lg font-bold mt-4 mb-2" {...props} />
+                  <h1
+                    className="text-[16px] font-semibold mt-5 mb-2"
+                    style={{ color: "#cccccc" }}
+                    {...props}
+                  />
                 ),
                 h2: ({ node, ...props }) => (
-                  <h2 className="text-base font-bold mt-3 mb-2" {...props} />
+                  <h2
+                    className="text-[14px] font-semibold mt-4 mb-2"
+                    style={{ color: "#bbbbbb" }}
+                    {...props}
+                  />
                 ),
                 h3: ({ node, ...props }) => (
-                  <h3 className="text-sm font-bold mt-2 mb-1" {...props} />
+                  <h3
+                    className="text-[13px] font-semibold mt-3 mb-1"
+                    style={{ color: "#aaaaaa" }}
+                    {...props}
+                  />
                 ),
                 ul: ({ node, ...props }) => (
-                  <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />
+                  <ul className="list-none pl-0 mb-3 space-y-1.5" {...props} />
                 ),
                 ol: ({ node, ...props }) => (
-                  <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />
+                  <ol className="list-decimal pl-4 mb-3 space-y-1.5" style={{ color: "#666666" }} {...props} />
                 ),
-                li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                li: ({ node, children, ...props }) => (
+                  <li className="flex items-start gap-2" {...props}>
+                    <span className="w-1 h-1 rounded-full mt-[8px] flex-shrink-0" style={{ background: "#444444" }} />
+                    <span>{children}</span>
+                  </li>
+                ),
                 p: ({ node, ...props }) => (
-                  <p className="mb-2 last:mb-0" {...props} />
+                  <p className="mb-2.5 last:mb-0" {...props} />
                 ),
                 a: ({ node, ...props }) => (
                   <a
-                    className="text-brand hover:underline"
+                    className="text-[#4d7fff] hover:underline"
                     target="_blank"
                     rel="noopener noreferrer"
                     {...props}
                   />
+                ),
+                strong: ({ node, ...props }) => (
+                  <strong className="font-semibold" style={{ color: msg.role === "user" ? "#ffffff" : "#cccccc" }} {...props} />
+                ),
+                em: ({ node, ...props }) => (
+                  <em style={{ color: msg.role === "user" ? "#ffffffcc" : "#888888" }} {...props} />
                 ),
                 code: ({ node, className, children, ...props }: any) => {
                   const match = /language-(\w+)/.exec(className || "");
                   const isInline = !match && !String(children).includes("\n");
                   return isInline ? (
                     <code
-                      className="bg-white/10 rounded px-1 py-0.5 font-mono text-[12px] text-brand/90"
+                      className="rounded px-1.5 py-0.5 font-mono text-[11px]"
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        color: "#8ab4f8",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                      }}
                       {...props}
                     >
                       {children}
                     </code>
                   ) : (
-                    <div className="my-2 rounded-lg overflow-hidden border border-white/10 bg-black/50">
-                      <div className="px-3 py-1 bg-white/5 border-b border-white/5 text-[10px] uppercase tracking-wider text-white/40 font-mono flex justify-between">
-                        <span>{match?.[1] || "code"}</span>
+                    <div
+                      className="my-3 rounded-[10px] overflow-hidden"
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        background: "rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      <div
+                        className="px-3 py-1.5 flex justify-between items-center"
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.04)",
+                          background: "rgba(255,255,255,0.02)",
+                        }}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider font-mono" style={{ color: "#555555" }}>
+                          {match?.[1] || "code"}
+                        </span>
                       </div>
                       <div className="p-3 overflow-x-auto">
                         <code
-                          className={`font-mono text-[12px] ${className}`}
+                          className={`font-mono text-[11px] leading-[1.6] ${className}`}
+                          style={{ color: "#aaaaaa" }}
                           {...props}
                         >
                           {children}
@@ -301,6 +366,27 @@ const ChatInterface: React.FC<Props> = ({
                     </div>
                   );
                 },
+                blockquote: ({ node, ...props }) => (
+                  <blockquote
+                    className="pl-3 my-3 italic"
+                    style={{ borderLeft: "2px solid #333333", color: "#777777" }}
+                    {...props}
+                  />
+                ),
+                hr: ({ node, ...props }) => (
+                  <hr className="my-4 border-none" style={{ height: 1, background: "#222222" }} {...props} />
+                ),
+                table: ({ node, ...props }) => (
+                  <div className="my-3 rounded-[8px] overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <table className="w-full text-[12px]" {...props} />
+                  </div>
+                ),
+                th: ({ node, ...props }) => (
+                  <th className="px-3 py-2 text-left font-semibold text-[11px] uppercase tracking-wider" style={{ background: "rgba(255,255,255,0.03)", color: "#777777", borderBottom: "1px solid rgba(255,255,255,0.06)" }} {...props} />
+                ),
+                td: ({ node, ...props }) => (
+                  <td className="px-3 py-2" style={{ color: "#999999", borderBottom: "1px solid rgba(255,255,255,0.03)" }} {...props} />
+                ),
               }}
             >
               {msg.content}
@@ -310,7 +396,14 @@ const ChatInterface: React.FC<Props> = ({
 
         {/* Closing Note */}
         {msg.closingNote && (
-          <div className="mt-3 text-[13px] text-white/80 italic border-l-2 border-green-500 pl-3 py-1 bg-green-500/10 rounded-r">
+          <div
+            className="mt-3 text-[12px] italic pl-3 py-1.5 rounded-r-md"
+            style={{
+              color: "rgba(255,255,255,0.65)",
+              borderLeft: "2px solid rgba(34,197,94,0.4)",
+              background: "rgba(34,197,94,0.04)",
+            }}
+          >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -324,7 +417,7 @@ const ChatInterface: React.FC<Props> = ({
                 ),
                 li: ({ children }) => <li className="ml-2">{children}</li>,
                 strong: ({ children }) => (
-                  <strong className="font-semibold text-white">
+                  <strong className="font-semibold" style={{ color: "#cccccc" }}>
                     {children}
                   </strong>
                 ),
@@ -337,8 +430,14 @@ const ChatInterface: React.FC<Props> = ({
 
         {/* Preview Action */}
         {msg.previewData && (
-          <div className="mt-4 pt-4 border-t border-white/5">
-            <div className="flex items-center justify-between bg-black rounded-[12px] p-3 border border-white/5">
+          <div className="mt-4 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+            <div
+              className="flex items-center justify-between rounded-[10px] p-3"
+              style={{
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
                   <Maximize2 size={14} />
@@ -347,7 +446,7 @@ const ChatInterface: React.FC<Props> = ({
                   <span className="text-[12px] font-medium text-white">
                     PCB Generation
                   </span>
-                  <span className="text-[10px] text-white/40">
+                  <span className="text-[10px]" style={{ color: "#555555" }}>
                     Ready to review
                   </span>
                 </div>
@@ -411,17 +510,30 @@ const ChatInterface: React.FC<Props> = ({
           className={`flex-1 overflow-y-auto mb-4 custom-scrollbar px-4 ${mode === "CHAT_PREVIEW" ? "" : "pt-4"}`}
         >
           {/* Historic Messages */}
-          {messages.map((msg) => (
+          {messages.map((msg, idx) => (
             <div
               key={msg.id}
-              className={`mb-6 flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`mb-6 flex ${msg.role === "user" ? "justify-end" : "justify-start"} ${msg.role === "user" ? "group/msg" : ""}`}
             >
+              {/* Revert button — appears on hover, left of the blue pill */}
+              {msg.role === "user" && onRevertToMessage && (
+                <button
+                  onClick={() => onRevertToMessage(msg.id)}
+                  className="opacity-0 group-hover/msg:opacity-100 transition-opacity duration-200 mr-2 self-center p-1.5 rounded-full hover:bg-white/10 text-white/30 hover:text-white/70"
+                  title="Revert to this message"
+                >
+                  <RotateCcw size={13} />
+                </button>
+              )}
               <div
-                className={`max-w-[85%] rounded-[20px] p-4 ${
-                  msg.role === "user"
-                    ? "bg-[#0038DF] text-white shadow-[0_4px_20px_rgba(0,56,223,0.3)]"
-                    : "bg-black text-white/80 border border-white/10"
-                }`}
+                className={`max-w-[85%] rounded-[12px] px-4 ${msg.role === "user"
+                  ? "py-[8px] bg-[#0038DF] text-white shadow-[0_2px_12px_rgba(0,56,223,0.25)]"
+                  : "py-3"
+                  }`}
+                style={msg.role === "assistant" ? {
+                  background: "rgba(255,255,255,0.02)",
+                  borderLeft: "2px solid rgba(0,56,223,0.2)",
+                } : undefined}
               >
                 {renderMessageContent(msg)}
               </div>
@@ -431,7 +543,13 @@ const ChatInterface: React.FC<Props> = ({
           {/* Streaming Message */}
           {isLoading && streamingMessage && (
             <div className="mb-6 flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="max-w-[85%] rounded-[20px] p-4 bg-black text-white/70 border border-white/10 border-l-2 border-l-[#0038DF]">
+              <div
+                className="max-w-[85%] rounded-[12px] px-4 py-3"
+                style={{
+                  background: "rgba(255,255,255,0.02)",
+                  borderLeft: "2px solid rgba(0,56,223,0.4)",
+                }}
+              >
                 {renderMessageContent(streamingMessage)}
               </div>
             </div>
@@ -440,7 +558,13 @@ const ChatInterface: React.FC<Props> = ({
           {/* Loading Indicator (only if no streaming message yet) */}
           {isLoading && !streamingMessage && (
             <div className="flex justify-start mb-6 px-4">
-              <div className="bg-black rounded-[20px] p-4 border border-white/10 flex items-center gap-3">
+              <div
+                className="rounded-[12px] px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: "rgba(255,255,255,0.02)",
+                  borderLeft: "2px solid rgba(0,56,223,0.3)",
+                }}
+              >
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-150" />
                 <div className="w-2 h-2 rounded-full bg-[#0038DF] animate-bounce delay-300" />
@@ -464,21 +588,39 @@ const ChatInterface: React.FC<Props> = ({
           )}
 
           {/* Error Banner */}
-          {error && (
+          {error && !isErrorDismissed && (
             <div className="mx-4 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-red-500/10 border border-red-500/20 rounded-[12px] p-4 flex items-start gap-3">
-                <AlertTriangle
-                  className="text-red-400 shrink-0 mt-0.5"
-                  size={16}
-                />
-                <div className="flex flex-col gap-1">
-                  <span className="text-[13px] font-medium text-red-200">
-                    Something went wrong
-                  </span>
-                  <span className="text-[12px] text-red-300/80">
-                    {error.message ||
-                      "An unknown error occurred while processing your request."}
-                  </span>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-[12px] p-4 flex flex-col gap-3">
+                <div className="flex items-start gap-4">
+                  <AlertTriangle
+                    className="text-red-400 shrink-0 mt-0.5"
+                    size={16}
+                  />
+                  <div className="flex flex-col gap-1 w-full flex-1">
+                    <span className="text-[13px] font-medium text-red-200">
+                      Agent terminated due to error
+                    </span>
+                    <span className="text-[12px] text-red-300/80 leading-relaxed">
+                      You can prompt the model to try again or start a new conversation if the error persists.
+                      <br />
+                      See our <a href="mailto:support@buildpcbs.com" className="underline hover:text-red-200 transition-colors">support</a> for more help.
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 justify-end mt-1">
+                  <button
+                    onClick={() => setIsErrorDismissed(true)}
+                    className="px-3 py-1.5 text-[11px] font-medium text-red-300/80 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    onClick={handleRetry}
+                    className="px-3 py-1.5 text-[11px] font-medium text-white bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-md transition-colors flex items-center gap-1.5"
+                  >
+                    <RotateCcw size={12} />
+                    Retry
+                  </button>
                 </div>
               </div>
             </div>
@@ -491,13 +633,12 @@ const ChatInterface: React.FC<Props> = ({
       {/* Input Area */}
       <div
         className={`w-full flex justify-center z-50
-        ${
-          mode === "LANDING"
-            ? "relative w-[720px] px-0"
+        ${mode === "LANDING"
+            ? "relative w-[560px] px-0"
             : mode === "SPLIT_VIEW"
-              ? "px-4 pb-0 bg-black" // Removed heavy padding/shadow for cleaner look
+              ? "px-3 pb-6"
               : "fixed bottom-8 left-1/2 -translate-x-1/2 w-[720px] px-0"
-        }`}
+          }`}
       >
         <ChatInput
           value={input}

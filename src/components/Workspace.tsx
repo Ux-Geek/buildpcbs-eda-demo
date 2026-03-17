@@ -134,8 +134,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   const [circuitJson, setCircuitJson] = useState<any | null>(null);
   const [bom, setBom] = useState<any[] | null>(null);
   const [showCode, setShowCode] = useState(false);
+  const [projectSidebarOpen, setProjectSidebarOpen] = useState(false);
   const isDev = process.env.NODE_ENV === "development";
   const [authInitTimeout, setAuthInitTimeout] = useState(false);
+  const [editableProjectName, setEditableProjectName] = useState<string>("Untitled Project");
 
   // Simulation State
   const [simulationMode, setSimulationMode] = useState(false);
@@ -332,7 +334,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             (new Date().getTime() - new Date(lastMsg.id).getTime() < 5000 ||
               (lastMsg.timestamp &&
                 new Date().getTime() - new Date(lastMsg.timestamp).getTime() <
-                  5000)) &&
+                5000)) &&
             // Ensure we don't drop messages if tasks or notes are different
             lastMsg.tasks?.length === tasks.length &&
             lastMsg.openingNote === openingNote &&
@@ -351,6 +353,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   useEffect(() => {
     if (projectName) {
       document.title = `${projectName} | BuildPCBs`;
+      setEditableProjectName(projectName);
     }
   }, [projectName]);
 
@@ -573,15 +576,15 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
   const streamingMessage: Message | undefined = isStreaming
     ? {
-        id: "streaming",
-        role: "assistant",
-        content,
-        timestamp: new Date(),
-        tasks,
-        tools,
-        openingNote: openingNote || undefined,
-        closingNote: closingNote || undefined,
-      }
+      id: "streaming",
+      role: "assistant",
+      content,
+      timestamp: new Date(),
+      tasks,
+      tools,
+      openingNote: openingNote || undefined,
+      closingNote: closingNote || undefined,
+    }
     : undefined;
 
   if (!ready && !authInitTimeout) {
@@ -595,9 +598,13 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   }
 
   return (
-    <div className="relative h-screen w-full bg-black text-white/70 overflow-hidden font-['DM_Sans']">
+    <div className="relative h-screen w-full bg-black text-white/70 overflow-hidden">
       {authenticated && (
-        <ProjectSidebar currentProjectId={projectId || undefined} />
+        <ProjectSidebar
+          currentProjectId={projectId || undefined}
+          isOpen={projectSidebarOpen}
+          onClose={() => setProjectSidebarOpen(false)}
+        />
       )}
 
       {appMode !== "LANDING" && (
@@ -645,7 +652,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
               <PCBRenderer
                 components={components}
                 selectedId={null}
-                onSelect={() => {}}
+                onSelect={() => { }}
                 contextMap={componentContext}
                 circuitJson={circuitJson}
                 viewMode={view}
@@ -658,11 +665,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
       <div
         className={`
                 z-40
-                ${
-                  appMode === "SPLIT_VIEW"
-                    ? "fixed left-0 top-0 h-full w-[25%] bg-black border-r border-white/10 shadow-2xl"
-                    : "absolute inset-0 pointer-events-none"
-                }
+                ${appMode === "SPLIT_VIEW"
+            ? "fixed left-0 top-0 h-full w-[25%] bg-black border-r border-white/10 shadow-2xl"
+            : "absolute inset-0 pointer-events-none"
+          }
             `}
       >
         <div className="w-full h-full pointer-events-auto">
@@ -689,6 +695,12 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             isLoading={isStreaming}
             selectedModel={selectedModel}
             onSelectModel={setSelectedModel}
+            onRevertToMessage={(messageId) => {
+              const idx = messages.findIndex((m) => m.id === messageId);
+              if (idx >= 0) {
+                setMessages((prev) => prev.slice(0, idx));
+              }
+            }}
             debugEvents={events}
             debugError={error}
             debugApiUrl={`${API_BASE_URL}/agent/execute`}
@@ -713,15 +725,22 @@ export const Workspace: React.FC<WorkspaceProps> = ({
 
       {appMode !== "LANDING" && (
         <div
-          className={`absolute top-8 left-8 z-40 transition-all duration-500 ${isSplit ? "opacity-0" : "opacity-100"}`}
+          className={`absolute top-8 left-8 z-40 transition-all duration-500 ${isSplit ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         >
           <div className="bg-[#101422] border border-[#ffffff1a] rounded-[20px] px-4 py-3 flex items-center gap-3 shadow-xl">
             <div className="scale-75">
               <Logo />
             </div>
-            <p className="text-[13px] font-bold text-[#777777] tracking-tight uppercase">
-              current_file.edat
-            </p>
+            <input
+              type="text"
+              value={editableProjectName}
+              onChange={(e) => setEditableProjectName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              className="bg-transparent text-[11px] font-medium text-[#777777] tracking-tight uppercase outline-none border-none w-[140px] hover:text-white/60 focus:text-white/80 transition-colors cursor-text selection:bg-brand/30"
+              spellCheck={false}
+            />
           </div>
         </div>
       )}
@@ -788,10 +807,9 @@ export const Workspace: React.FC<WorkspaceProps> = ({
                 onClick={() => setView(v)}
                 className={`
                   group relative flex items-center justify-center w-10 h-10 rounded-full transition-all
-                  ${
-                    view === v
-                      ? "bg-[#0038DF] text-white shadow-lg scale-110"
-                      : "text-white/50 hover:text-white hover:bg-white/10"
+                  ${view === v
+                    ? "bg-[#0038DF] text-white shadow-lg scale-110"
+                    : "text-white/50 hover:text-white hover:bg-white/10"
                   }
                 `}
               >
@@ -809,11 +827,10 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         <div className="absolute bottom-8 right-8 z-50 flex bg-black border border-white/10 rounded-full p-1 shadow-2xl">
           <button
             onClick={() => setShowCode(!showCode)}
-            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
-              showCode
-                ? "bg-[#0038DF] text-white shadow-lg"
-                : "text-white/50 hover:text-white hover:bg-white/5"
-            }`}
+            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${showCode
+              ? "bg-[#0038DF] text-white shadow-lg"
+              : "text-white/50 hover:text-white hover:bg-white/5"
+              }`}
           >
             {showCode ? "Hide Code" : "Show Code"}
           </button>
@@ -826,6 +843,11 @@ export const Workspace: React.FC<WorkspaceProps> = ({
         onLogout={logout}
         user={user}
         ready={ready}
+        projectName={projectName || (projectId ? "Untitled Project" : undefined)}
+        viewMode={view}
+        onSetViewMode={setView}
+        showViewControls={appMode === "SPLIT_VIEW"}
+        onOpenProjects={() => setProjectSidebarOpen(true)}
       />
     </div>
   );

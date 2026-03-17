@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api/projects";
 import { useRouter } from "next/navigation";
-import { Plus, History, ChevronLeft, ChevronRight, Folder } from "lucide-react";
+import { Plus, History, ChevronLeft, Folder } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Project {
@@ -15,14 +15,17 @@ interface Project {
 interface ProjectSidebarProps {
   currentProjectId?: string;
   className?: string;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   currentProjectId,
   className = "",
+  isOpen,
+  onClose,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,118 +37,145 @@ export const ProjectSidebar: React.FC<ProjectSidebarProps> = ({
   }, [isOpen]);
 
   return (
-    <>
-      {/* Toggle Button */}
-      <div
-        className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 ${isOpen ? "hidden" : "block"}`}
-      >
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-black border border-white/10 p-2 rounded-r-lg hover:bg-white/5 text-white/50 hover:text-white transition-all shadow-xl"
-          title="My Projects"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/40 z-50 backdrop-blur-sm"
+          />
 
-      {/* Sidebar Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-            />
-
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className={`fixed left-0 top-0 h-full w-[300px] bg-black border-r border-white/10 z-50 flex flex-col shadow-2xl ${className}`}
+          {/* Drawer */}
+          <motion.div
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "-100%", opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={`fixed left-0 top-0 h-full w-[300px] z-50 flex flex-col shadow-2xl ${className}`}
+            style={{
+              background: "#232323",
+              borderRight: "1px solid #3A3A3A",
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: "1px solid #3A3A3A" }}
             >
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <h2 className="text-white font-medium text-sm flex items-center gap-2">
-                  <Folder size={14} className="text-brand" />
-                  My Projects
-                </h2>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="text-white/50 hover:text-white p-1"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    router.push("/");
-                  }}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 text-white/70 hover:text-white transition-colors mb-2 border border-dashed border-white/10 hover:border-brand"
-                >
-                  <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand">
-                    <Plus size={16} />
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="text-xs font-medium">New Project</span>
-                    <span className="text-[10px] text-white/40">
-                      Start from scratch
-                    </span>
-                  </div>
-                </button>
+              <h2 className="font-medium text-sm flex items-center gap-2" style={{ color: "#CCCCCC" }}>
+                <Folder size={14} style={{ color: "#0038DF" }} />
+                My Projects
+              </h2>
+              <button
+                onClick={onClose}
+                className="p-1 rounded-md hover:bg-white/10 transition-colors"
+                style={{ color: "#666666" }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </div>
 
-                <div className="space-y-1">
-                  {projects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setIsOpen(false);
-                        router.push(`/p/${p.id}`);
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+              {/* New Project button */}
+              <button
+                onClick={() => {
+                  onClose();
+                  router.push("/");
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors mb-3"
+                style={{
+                  border: "1px dashed #3A3A3A",
+                }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(0, 56, 223, 0.15)" }}
+                >
+                  <Plus size={16} style={{ color: "#4D7AFF" }} />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-xs font-medium" style={{ color: "#CCCCCC" }}>
+                    New Project
+                  </span>
+                  <span className="text-[10px]" style={{ color: "#666666" }}>
+                    Start from scratch
+                  </span>
+                </div>
+              </button>
+
+              {/* Project list */}
+              <div className="space-y-1">
+                {projects.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onClose();
+                      router.push(`/p/${p.id}`);
+                    }}
+                    className={`
+                      w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left group
+                      ${p.id === currentProjectId
+                        ? "shadow-sm"
+                        : "hover:bg-white/5"
+                      }
+                    `}
+                    style={{
+                      border:
+                        p.id === currentProjectId
+                          ? "1px solid #0038DF"
+                          : "1px solid transparent",
+                      background:
+                        p.id === currentProjectId
+                          ? "rgba(0, 56, 223, 0.05)"
+                          : undefined,
+                    }}
+                  >
+                    <div
+                      className="w-8 h-8 rounded flex items-center justify-center"
+                      style={{
+                        background: "#1A1A1A",
+                        color:
+                          p.id === currentProjectId ? "#0038DF" : "#999999",
                       }}
-                      className={`
-                        w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left group
-                        ${
-                          p.id === currentProjectId
-                            ? "bg-[#0038DF]/20 border border-[#0038DF] shadow-[0_0_15px_rgba(0,56,223,0.3)]"
-                            : "hover:bg-white/5 border border-transparent hover:border-white/10"
-                        }
-                      `}
                     >
+                      <History size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <div
-                        className={`w-8 h-8 rounded bg-black flex items-center justify-center ${p.id === currentProjectId ? "text-brand" : "text-white/40 group-hover:text-white/50"}`}
+                        className="text-xs font-medium truncate"
+                        style={{
+                          color:
+                            p.id === currentProjectId
+                              ? "#FFFFFF"
+                              : "#AAAAAA",
+                        }}
                       >
-                        <History size={14} />
+                        {p.name || "Untitled Project"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div
-                          className={`text-xs font-medium truncate ${p.id === currentProjectId ? "text-white" : "text-white/70"}`}
-                        >
-                          {p.name || "Untitled Project"}
-                        </div>
-                        <div className="text-[10px] text-white/40">
-                          {new Date(p.updatedAt).toLocaleDateString()}
-                        </div>
+                      <div className="text-[10px]" style={{ color: "#999999" }}>
+                        {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : ""}
                       </div>
-                    </button>
-                  ))}
-                </div>
+                    </div>
+                  </button>
+                ))}
               </div>
-              {/* Version */}
-              <div className="p-4 border-t border-white/10">
-                <div className="text-center text-[10px] text-white/30 font-mono">
-                  v1.1
-                </div>
-              </div>{" "}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+            </div>
+
+            {/* Version Footer */}
+            <div className="p-4 border-t border-white/10">
+              <div className="text-center text-[10px] text-white/30 font-mono">
+                v1.1.0
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
   );
 };

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { DM_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ClientLayout } from "@/components/ClientLayout";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
+  style: ["normal"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -71,7 +71,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={dmSans.className}>
+      <body className={inter.className} style={{ letterSpacing: '-0.015em', lineHeight: 1.25 }}>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
